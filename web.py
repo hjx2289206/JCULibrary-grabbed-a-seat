@@ -100,6 +100,14 @@ def update_booking(booking):
     conn.commit()
     conn.close()
 
+# 删除所有预约信息
+def delete_all_bookings():
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM bookings')
+    conn.commit()
+    conn.close()
+
 def auto_book_seat():
     try:
         bookings = load_bookings()
@@ -123,6 +131,10 @@ def auto_book_seat():
             except Exception as e:
                 booking['result'] = f"预约失败: {str(e)}"
             update_booking(booking)
+        
+        # 清除所有预约记录
+        delete_all_bookings()
+        
     except Exception as e:
         print(f"自动预约任务失败: {str(e)}")
 
