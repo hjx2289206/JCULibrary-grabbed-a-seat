@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>座位预约系统</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>座位预约系统</h1>
+        <form method="post" action="/">
+            <label for="cookie">Cookie:</label>
+            <input type="text" id="cookie" name="cookie">
+
+            <label>选择座位:</label>
+            {% for floor, seats in floors.items() %}
+                <h2>{{ floor }}</h2>
+                <div>
+                    {% for seat in seats %}
+                        <label class="seat-label {{ 'green-highlight' if seat.has_data else '' }}">
+                            <input type="radio" name="seat_id" value="{{ seat.id }}">
+                            {{ seat.name }}
+                        </label>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+
+            <label>选择时间段:</label>
+            <input type="checkbox" name="time_slots" value="6ba3ccd77482466b82a08e480c4299ee"> 10:00 - 12:00<br>
+            <input type="checkbox" name="time_slots" value="58fc242d7eff41b18f1e795b048f50d4"> 12:00 - 14:00<br>
+            <input type="checkbox" name="time_slots" value="da7bd7e2416246aeb4a35306d75f629b"> 14:00 - 16:00<br>
+            <input type="checkbox" name="time_slots" value="1ead11f7e214444986dbbf877f7de81d"> 16:00 - 18:00<br>
+            <input type="checkbox" name="time_slots" value="a9596c67c7ab4f5687a0e1a5cb3ae431"> 18:00 - 22:00<br>
+
+            <input type="submit" value="抢座位">
+        </form>
+    </div>
+</body>
+</html>
