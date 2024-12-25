@@ -73,33 +73,34 @@
 </head>
 <body>
 <div class="container">
-<h1>我的预约</h1>
-<table>
-    <thead>
-        <tr>
-            <th>座位号</th>
-            <th>日期</th>
-            <th>时间段</th>
-            <th>状态</th>
-            <th>操作</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for booking in bookings %}
-        <tr>
-            <td>{{ booking.seat_name }}</td>
-            <td>{{ booking.date }}</td>
-            <td data-time-slot="{{ booking.time_slots|join(',') }}">{{ booking.time_slots|join(', ') }}</td>
-            <td class="{{ 'status-success' if booking.result == '预约成功' else 'status-cancelled' }}">
-                {{ booking.result }}
-            </td>
-            <td>
-                <a href="{{ url_for('cancel_booking', booking_id=booking.id) }}">取消</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+    <a href="{{ url_for('home') }}">返回首页</a> <!-- 添加返回首页的链接 -->
+    <h1>我的预约</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>座位号</th>
+                <th>日期</th>
+                <th>时间段</th>
+                <th>状态</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for booking in bookings %}
+            <tr>
+                <td>{{ booking.seat_name }}</td>
+                <td>{{ booking.date }}</td>
+                <td data-time-slot="{{ booking.time_slots|join(',') }}">{{ booking.time_slots|join(', ') }}</td>
+                <td class="{{ 'status-success' if booking.result == '预约成功' else 'status-cancelled' }}">
+                    {{ booking.result }}
+                </td>
+                <td>
+                    <a href="{{ url_for('cancel_booking', booking_id=booking.id) }}">取消</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 </body>
 </html>
