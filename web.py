@@ -1,8 +1,8 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, jsonify
 import requests
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
-import json
+import sqlite3
 
 app = Flask(__name__)
 
@@ -36,62 +36,128 @@ seat_data = {
     }},
 }
 
-# 存储用户预约信息的文件
-BOOKING_FILE = 'bookings.json'
+# 数据库文件
+DB_FILE = 'bookings.db'
 
+# 初始化数据库
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS bookings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cookie TEXT NOT NULL,
+        seat_id TEXT NOT NULL,
+        date TEXT NOT NULL,
+        time_slots TEXT NOT NULL,
+        processed BOOLEAN NOT NULL,
+        result TEXT
+    )
+    ''')
+    conn.commit()
+    conn.close()
+
+# 加载预约信息
 def load_bookings():
-    try:
-        with open(BOOKING_FILE, 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return []
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM bookings')
+    rows = cursor.fetchall()
+    bookings = []
+    for row in rows:
+        bookings.append({
+            'id': row[0],
+            'cookie': row[1],
+            'seat_id': row[2],
+            'date': row[3],
+            'time_slots': row[4].split(','),
+            'processed': row[5],
+            'result': row[6]
+        })
+    conn.close()
+    return bookings
 
-def save_bookings(bookings):
-    with open(BOOKING_FILE, 'w') as f:
-        json.dump(bookings, f)
+# 保存预约信息
+def save_booking(booking):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute('''
+    INSERT INTO bookings (cookie, seat_id, date, time_slots, processed, result)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ''', (booking['cookie'], booking['seat_id'], booking['date'], ','.join(booking['time_slots']), booking['processed'], booking['result']))
+    conn.commit()
+    conn.close()
+
+# 更新预约信息
+def update_booking(booking):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute('''
+    UPDATE bookings
+    SET cookie = ?, seat_id = ?, date = ?, time_slots = ?, processed = ?, result = ?
+    WHERE id = ?
+    ''', (booking['cookie'], booking['seat_id'], booking['date'], ','.join(booking['time_slots']), booking['processed'], booking['result'], booking['id']))
+    conn.commit()
+    conn.close()
 
 def auto_book_seat():
-    bookings = load_bookings()
-    for booking in bookings:
-        headers['Cookie'] = booking['cookie']
-        for sjdId in booking['time_slots']:
-            data = {
-                'rq': booking['date'],
-                'sjdId': sjdId,
-                'zwId': booking['seat_id'],
-            }
-            response = requests.post(url, headers=headers, data=data)
-            if response.status_code == 200:
-                print(f"成功预约时间段 {sjdId}")
-            else:
-                print(f"预约时间段 {sjdId} 失败")
-        booking['processed'] = True
-    save_bookings(bookings)
+    try:
+        bookings = load_bookings()
+        for booking in bookings:
+            if booking['processed']:
+                continue
+            try:
+                headers['Cookie'] = booking['cookie']
+                success_count = 0
+                for sjdId in booking['time_slots']:
+                    data = {
+                        'rq': booking['date'],
+                        'sjdId': sjdId,
+                        'zwId': booking['seat_id'],
+                    }
+                    response = requests.post(url, headers=headers, data=data, timeout=10)
+                    if response.status_code == 200:
+                        success_count += 1
+                booking['processed'] = True
+                booking['result'] = f"成功预约 {success_count} 个时间段"
+            except Exception as e:
+                booking['result'] = f"预约失败: {str(e)}"
+            update_booking(booking)
+    except Exception as e:
+        print(f"自动预约任务失败: {str(e)}")
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(auto_book_seat, 'cron', hour=6, minute=5)  # 每天早上6：05运行
+scheduler.add_job(auto_book_seat, 'cron', hour=6, minute=5)
 scheduler.start()
 
 @app.route("/", methods=["GET", "POST"])
 def home():
     if request.method == "POST":
-        cookie = request.form["cookie"]
-        seat_id = request.form["seat_id"]
-        date = datetime.now().strftime('%Y-%m-%d')  # 自动获取当前日期
-        time_slots = request.form.getlist("time_slots")
-
-        booking = {
-            'cookie': cookie,
-            'seat_id': seat_id,
-            'date': date,
-            'time_slots': time_slots,
-            'processed': False
-        }
-        bookings = load_bookings()
-        bookings.append(booking)
-        save_bookings(bookings)
-
-        return "预约请求已发送"
+        try:
+            cookie = request.form.get("cookie")
+            seat_id = request.form.get("seat_id")
+            time_slots = request.form.getlist("time_slots")
+            
+            if not cookie or not seat_id or not time_slots:
+                return "请填写完整信息"
+            
+            date = datetime.now().strftime('%Y-%m-%d')
+            
+            # 不立即执行预约，只保存预约记录
+            booking = {
+                'cookie': cookie,
+                'seat_id': seat_id,
+                'date': date,
+                'time_slots': time_slots,
+                'processed': False,
+                'result': "预约记录已保存，待自动执行"
+            }
+            
+            save_booking(booking)
+            
+            return "预约记录已保存，将在明早6:05自动执行"
+        except Exception as e:
+            return f"预约失败: {str(e)}"
 
     # 生成座位信息
     floors = {}
@@ -100,7 +166,7 @@ def home():
         floors[floor_name] = []
         for seat_num in range(1, 37 if floor < 5 else 39):
             seat_id = f'{floor_name}Z{seat_num:02d}'
-            has_data = seat_num in seat_data.get(floor_name, {}).get('Z', set())
+            has_data = seat_num in seat_data.get(floor_name, {}).get('Z', {})
             seat_real_id = seat_data.get(floor_name, {}).get('Z', {}).get(seat_num, seat_id)
             floors[floor_name].append({
                 'id': seat_real_id,
@@ -111,4 +177,5 @@ def home():
     return render_template("template.html", floors=floors)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    init_db()
+    app.run(debug=True, host='0.0.0.0', port=5000)
