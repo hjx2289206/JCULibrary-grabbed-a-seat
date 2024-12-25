@@ -1,10 +1,15 @@
-from flask import Flask, request, render_template, jsonify
-import requests
-from datetime import datetime
-from apscheduler.schedulers.background import BackgroundScheduler
+from flask import Flask, request, render_template, redirect, url_for, session, jsonify
 import sqlite3
+import hashlib
+import requests
+from datetime import datetime, timedelta
+from apscheduler.schedulers.background import BackgroundScheduler
+from init_db import init_db  # 导入 init_db 函数
 
 app = Flask(__name__)
+app.secret_key = 'supersecretkey'  # 请使用更安全的密钥
+
+DB_FILE = 'bookings.db'
 
 # 配置信息
 url = 'https://jcc.educationgroup.cn/tsg/kzwWx/save'
@@ -36,55 +41,18 @@ seat_data = {
     }},
 }
 
-# 数据库文件
-DB_FILE = 'bookings.db'
-
-# 初始化数据库
-def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS bookings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        cookie TEXT NOT NULL,
-        seat_id TEXT NOT NULL,
-        date TEXT NOT NULL,
-        time_slots TEXT NOT NULL,
-        processed BOOLEAN NOT NULL,
-        result TEXT
-    )
-    ''')
-    conn.commit()
-    conn.close()
-
-# 加载预约信息
-def load_bookings():
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM bookings')
-    rows = cursor.fetchall()
-    bookings = []
-    for row in rows:
-        bookings.append({
-            'id': row[0],
-            'cookie': row[1],
-            'seat_id': row[2],
-            'date': row[3],
-            'time_slots': row[4].split(','),
-            'processed': row[5],
-            'result': row[6]
-        })
-    conn.close()
-    return bookings
+# 哈希密码
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
 
 # 保存预约信息
 def save_booking(booking):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute('''
-    INSERT INTO bookings (cookie, seat_id, date, time_slots, processed, result)
-    VALUES (?, ?, ?, ?, ?, ?)
-    ''', (booking['cookie'], booking['seat_id'], booking['date'], ','.join(booking['time_slots']), booking['processed'], booking['result']))
+    INSERT INTO bookings (user_id, cookie, seat_id, date, time_slots, processed, result)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (booking['user_id'], booking['cookie'], booking['seat_id'], booking['date'], booking['time_slots'], booking['processed'], booking['result']))
     conn.commit()
     conn.close()
 
@@ -94,9 +62,9 @@ def update_booking(booking):
     cursor = conn.cursor()
     cursor.execute('''
     UPDATE bookings
-    SET cookie = ?, seat_id = ?, date = ?, time_slots = ?, processed = ?, result = ?
+    SET user_id = ?, cookie = ?, seat_id = ?, date = ?, time_slots = ?, processed = ?, result = ?
     WHERE id = ?
-    ''', (booking['cookie'], booking['seat_id'], booking['date'], ','.join(booking['time_slots']), booking['processed'], booking['result'], booking['id']))
+    ''', (booking['user_id'], booking['cookie'], booking['seat_id'], booking['date'], ','.join(booking['time_slots']), booking['processed'], booking['result'], booking['id']))
     conn.commit()
     conn.close()
 
@@ -108,6 +76,184 @@ def delete_all_bookings():
     conn.commit()
     conn.close()
 
+# 用户注册
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        hashed_password = hash_password(password)
+
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        try:
+            cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
+            conn.commit()
+            return redirect(url_for("login"))
+        except sqlite3.IntegrityError:
+            return "用户名已存在，请选择其他用户名"
+        finally:
+            conn.close()
+    return render_template("register.html")
+
+# 用户登录
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        hashed_password = hash_password(password)
+
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM users WHERE username = ? AND password = ?", (username, hashed_password))
+        user = cursor.fetchone()
+        conn.close()
+
+        if user:
+            session["user_id"] = user[0]
+            return redirect(url_for("home"))
+        else:
+            return "用户名或密码错误"
+    return render_template("login.html")
+
+# 用户注销
+@app.route("/logout")
+def logout():
+    session.pop("user_id", None)
+    return redirect(url_for("login"))
+
+# 查看预约
+@app.route("/my_bookings")
+def my_bookings():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    
+    user_id = session["user_id"]
+
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM bookings WHERE user_id = ?", (user_id,))
+    rows = cursor.fetchall()
+    bookings = []
+    for row in rows:
+        # 将元组转换为字典
+        booking_dict = {
+            'id': row[0],
+            'user_id': row[1],
+            'cookie': row[2],
+            'seat_id': row[3],
+            'date': row[4],
+            'time_slots': row[5].split(','),  # 假设时间段是以逗号分隔的字符串
+            'processed': row[6],
+            'result': row[7]
+        }
+        # 使用 seat_data 获取座位号
+        for floor, seats in seat_data.items():
+            if booking_dict['seat_id'] in seats['Z'].values():
+                for seat_number, seat_id in seats['Z'].items():
+                    if seat_id == booking_dict['seat_id']:
+                        booking_dict['seat_name'] = f"{floor}Z{seat_number:02d}"
+                        break
+        bookings.append(booking_dict)
+    conn.close()
+
+    return render_template("my_bookings.html", bookings=bookings)
+
+# 取消预约
+@app.route("/cancel_booking/<int:booking_id>")
+def cancel_booking(booking_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    
+    user_id = session["user_id"]
+
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM bookings WHERE id = ? AND user_id = ?", (booking_id, user_id))
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("my_bookings"))
+
+# 首页（抢座位）
+@app.route("/", methods=["GET", "POST"])
+def home():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    
+    if request.method == "POST":
+        try:
+            user_id = session["user_id"]
+            cookie = request.form.get("cookie")
+            seat_id = request.form.get("seat_id")
+            time_slots = request.form.getlist("time_slots")
+            
+            if not cookie or not seat_id or not time_slots:
+                return "请填写完整信息"
+            
+            now = datetime.now()
+            if now.hour >= 6:
+                date = (now + timedelta(days=1)).strftime('%Y-%m-%d')
+            else:
+                date = now.strftime('%Y-%m-%d')
+            
+            # 不立即执行预约，只保存预约记录
+            booking = {
+                'user_id': user_id,
+                'cookie': cookie,
+                'seat_id': seat_id,
+                'date': date,
+                'time_slots': ','.join(time_slots),
+                'processed': False,
+                'result': "预约记录已保存，待自动执行"
+            }
+            
+            save_booking(booking)
+            
+            return "预约记录已保存，将在明早6:05自动执行"
+        except Exception as e:
+            return f"预约失败: {str(e)}"
+
+    # 生成座位信息
+    floors = {}
+    for floor in range(3, 6):
+        floor_name = f'{floor}F'
+        floors[floor_name] = []
+        for seat_num in range(1, 37 if floor < 5 else 39):
+            seat_id = f'{floor_name}Z{seat_num:02d}'
+            has_data = seat_num in seat_data.get(floor_name, {}).get('Z', {})
+            seat_real_id = seat_data.get(floor_name, {}).get('Z', {}).get(seat_num, seat_id)
+            floors[floor_name].append({
+                'id': seat_real_id,
+                'name': seat_id,
+                'has_data': has_data
+            })
+
+    return render_template("template.html", floors=floors)
+
+# 加载预约信息
+def load_bookings():
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM bookings')
+    rows = cursor.fetchall()
+    bookings = []
+    for row in rows:
+        bookings.append({
+            'id': row[0],
+            'user_id': row[1],
+            'cookie': row[2],
+            'seat_id': row[3],
+            'date': row[4],
+            'time_slots': row[5].split(','),
+            'processed': row[6],
+            'result': row[7]
+        })
+    conn.close()
+    return bookings
+
+# 自动预约任务
 def auto_book_seat():
     try:
         bookings = load_bookings()
@@ -141,52 +287,6 @@ def auto_book_seat():
 scheduler = BackgroundScheduler()
 scheduler.add_job(auto_book_seat, 'cron', hour=6, minute=5)
 scheduler.start()
-
-@app.route("/", methods=["GET", "POST"])
-def home():
-    if request.method == "POST":
-        try:
-            cookie = request.form.get("cookie")
-            seat_id = request.form.get("seat_id")
-            time_slots = request.form.getlist("time_slots")
-            
-            if not cookie or not seat_id or not time_slots:
-                return "请填写完整信息"
-            
-            date = datetime.now().strftime('%Y-%m-%d')
-            
-            # 不立即执行预约，只保存预约记录
-            booking = {
-                'cookie': cookie,
-                'seat_id': seat_id,
-                'date': date,
-                'time_slots': time_slots,
-                'processed': False,
-                'result': "预约记录已保存，待自动执行"
-            }
-            
-            save_booking(booking)
-            
-            return "预约记录已保存，将在明早6:05自动执行"
-        except Exception as e:
-            return f"预约失败: {str(e)}"
-
-    # 生成座位信息
-    floors = {}
-    for floor in range(3, 6):
-        floor_name = f'{floor}F'
-        floors[floor_name] = []
-        for seat_num in range(1, 37 if floor < 5 else 39):
-            seat_id = f'{floor_name}Z{seat_num:02d}'
-            has_data = seat_num in seat_data.get(floor_name, {}).get('Z', {})
-            seat_real_id = seat_data.get(floor_name, {}).get('Z', {}).get(seat_num, seat_id)
-            floors[floor_name].append({
-                'id': seat_real_id,
-                'name': seat_id,
-                'has_data': has_data
-            })
-
-    return render_template("template.html", floors=floors)
 
 if __name__ == "__main__":
     init_db()

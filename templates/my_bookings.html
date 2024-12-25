@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>我的预约</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            background: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .status-success {
+            color: #4CAF50;
+        }
+        .status-cancelled {
+            color: #f44336;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<script>
+  // 时间段ID到描述的映射
+  const timeSlotMap = {
+      "6ba3ccd77482466b82a08e480c4299ee": "10:00 - 12:00",
+      "58fc242d7eff41b18f1e795b048f50d4": "12:00 - 14:00",
+      "da7bd7e2416246aeb4a35306d75f629b": "14:00 - 16:00",
+      "1ead11f7e214444986dbbf877f7de81d": "16:00 - 18:00",
+      "a9596c67c7ab4f5687a0e1a5cb3ae431": "18:00 - 22:00"
+  };
+
+  // 函数用于转换时间段ID为描述
+  function convertTimeSlots() {
+      const timeSlotCells = document.querySelectorAll('td[data-time-slot]');
+      timeSlotCells.forEach(cell => {
+          const ids = cell.getAttribute('data-time-slot').split(','); // 分割字符串获取ID数组
+          const descriptions = ids.map(id => timeSlotMap[id] || id); // 映射ID到描述，如果没找到则返回ID
+          cell.textContent = descriptions.join(', '); // 用逗号连接描述
+      });
+  }
+
+  // 页面加载完毕后执行转换
+  window.addEventListener('DOMContentLoaded', convertTimeSlots);
+</script>
+</head>
+<body>
+<div class="container">
+<h1>我的预约</h1>
+<table>
+    <thead>
+        <tr>
+            <th>座位号</th>
+            <th>日期</th>
+            <th>时间段</th>
+            <th>状态</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for booking in bookings %}
+        <tr>
+            <td>{{ booking.seat_name }}</td>
+            <td>{{ booking.date }}</td>
+            <td data-time-slot="{{ booking.time_slots|join(',') }}">{{ booking.time_slots|join(', ') }}</td>
+            <td class="{{ 'status-success' if booking.result == '预约成功' else 'status-cancelled' }}">
+                {{ booking.result }}
+            </td>
+            <td>
+                <a href="{{ url_for('cancel_booking', booking_id=booking.id) }}">取消</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+</body>
+</html>
