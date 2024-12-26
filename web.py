@@ -89,6 +89,8 @@ def delete_all_bookings():
 
 # 发送飞书通知
 def send_feishu_notification(webhook_url, message):
+    if not webhook_url:
+        return True  # 如果Webhook URL为空，则不发送通知，视为成功
     headers = {
         'Content-Type': 'application/json'
     }
@@ -244,7 +246,7 @@ def home():
                 'cookie': cookie,
                 'seat_id': seat_id,
                 'date': date,
-                'time_slots': time_slots,
+                'time_slots': ','.join(time_slots),
                 'processed': False,
                 'result': "预约记录已保存，待自动执行",
                 'feishu_webhook': feishu_webhook
