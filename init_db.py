@@ -24,6 +24,7 @@ def init_db():
         time_slots TEXT NOT NULL,
         processed BOOLEAN NOT NULL,
         result TEXT,
+        feishu_webhook TEXT NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users (id)
     )
     ''')

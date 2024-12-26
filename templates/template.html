@@ -41,6 +41,9 @@
             <label for="cookie">Cookie:</label>
             <input type="text" id="cookie" name="cookie" required>
 
+            <label for="feishu_webhook">飞书机器人Webhook URL:</label>
+            <input type="text" id="feishu_webhook" name="feishu_webhook" required>
+
             <div class="seat-section">
                 {% for floor, seats in floors.items() %}
                     <h2>{{ floor }}</h2>

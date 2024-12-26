@@ -23,23 +23,33 @@ headers = {
 seat_data = {
     '3F': {'Z': {
         3: 'EB5736CADE5AFB94E0530B96CE0A6065', 5: 'EB5736CADE63FB94E0530B96CE0A6065',
-        11: 'EB5736CADE65FB94E0530B96CE0A6065', 15: 'EB5736CADE52FB94E0530B96CE0A6065',
-        19: 'EB5736CADE5CFB94E0530B96CE0A6065', 33: '344040c9414a4128bc67e03e128f8136',
-        34: 'ccc88464ec874dca9efec249884341b4'
+        6: 'EB5736CADE56FB94E0530B96CE0A6065', 11: 'EB5736CADE65FB94E0530B96CE0A6065',
+        15: 'EB5736CADE52FB94E0530B96CE0A6065', 17: 'EB5736CADE5BFB94E0530B96CE0A6065',
+        19: 'EB5736CADE5CFB94E0530B96CE0A6065', 26: 'EB5736CADE6CFB94E0530B96CE0A6065',
+        27: 'EB5736CADE68FB94E0530B96CE0A6065', 33: '344040c9414a4128bc67e03e128f8136',
+        34: 'ccc88464ec874dca9efec249884341b4', 35: '582d803aa9cf4b0f965cd4db62fbe11a'
     }},
     '4F': {'Z': {
         1: 'EBD2FE1B50D3A3D0E0530C96CE0AF3C1', 3: 'EBD2FE1B50E3A3D0E0530C96CE0AF3C1',
-        4: 'EBD2FE1B50EAA3D0E0530C96CE0AF3C1', 8: 'EBD2FE1B50EBA3D0E0530C96CE0AF3C1',
-        11: 'EBD2FE1B50D8A3D0E0530C96CE0AF3C1', 15: 'EBD2FE1B50D9A3D0E0530C96CE0AF3C1',
-        25: 'EBD2FE1B50E7A3D0E0530C96CE0AF3C1', 33: 'EBD2FE1B50E5A3D0E0530C96CE0AF3C1'
+        4: 'EBD2FE1B50EAA3D0E0530C96CE0AF3C1', 7: 'EBD2FE1B50DFA3D0E0530C96CE0AF3C1',
+        8: 'EBD2FE1B50EBA3D0E0530C96CE0AF3C1', 9: 'EBD2FE1B50E4A3D0E0530C96CE0AF3C1',
+        11: 'EBD2FE1B50D8A3D0E0530C96CE0AF3C1', 12: 'EBD2FE1B50D4A3D0E0530C96CE0AF3C1',
+        15: 'EBD2FE1B50D9A3D0E0530C96CE0AF3C1', 16: 'EBD2FE1B50DDA3D0E0530C96CE0AF3C1',
+        17: 'EBD2FE1B50DEA3D0E0530C96CE0AF3C1', 18: 'EBD2FE1B50D0A3D0E0530C96CE0AF3C1',
+        21: 'EBD2FE1B50D1A3D0E0530C96CE0AF3C1', 25: 'EBD2FE1B50E7A3D0E0530C96CE0AF3C1',
+        30: 'EBD2FE1B50EEA3D0E0530C96CE0AF3C1', 31: 'EBD2FE1B50EFA3D0E0530C96CE0AF3C1',
+        33: 'EBD2FE1B50E5A3D0E0530C96CE0AF3C1'
     }},
     '5F': {'Z': {
         4: 'EBD2FE1B5122A3D0E0530C96CE0AF3C1', 8: 'EBD2FE1B513AA3D0E0530C96CE0AF3C1',
-        10: 'EBD2FE1B5144A3D0E0530C96CE0AF3C1', 12: 'EBD2FE1B513DA3D0E0530C96CE0AF3C1',
-        16: 'EBD2FE1B513EA3D0E0530C96CE0AF3C1', 23: 'EBD2FE1B5129A3D0E0530C96CE0AF3C1',
-        28: 'EBD2FE1B5147A3D0E0530C96CE0AF3C1', 32: 'EBD2FE1B5132A3D0E0530C96CE0AF3C1',
-        35: 'EBD2FE1B5134A3D0E0530C96CE0AF3C1'
-    }},
+        9: 'EBD2FE1B512FA3D0E0530C96CE0AF3C1', 10: 'EBD2FE1B5144A3D0E0530C96CE0AF3C1',
+        12: 'EBD2FE1B513DA3D0E0530C96CE0AF3C1', 14: 'EBD2FE1B512AA3D0E0530C96CE0AF3C1',
+        16: 'EBD2FE1B513EA3D0E0530C96CE0AF3C1', 22: 'EBD2FE1B5131A3D0E0530C96CE0AF3C1',
+        24: 'EBD2FE1B5146A3D0E0530C96CE0AF3C1', 26: 'EBD2FE1B513BA3D0E0530C96CE0AF3C1',
+        28: 'EBD2FE1B5147A3D0E0530C96CE0AF3C1', 30: 'EBD2FE1B5132A3D0E0530C96CE0AF3C1',
+        33: 'EBD2FE1B5134A3D0E0530C96CE0AF3C1', 34: 'EBD2FE1B512AA3D0E0530C96CE0AF3C1',
+        36: 'EBD2FE1B5139A3D0E0530C96CE0AF3C1', 37: 'EBD2FE1B512DA3D0E0530C96CE0AF3C1'
+    }}
 }
 
 # 哈希密码
@@ -76,6 +86,30 @@ def delete_all_bookings():
     cursor.execute('DELETE FROM bookings')
     conn.commit()
     conn.close()
+
+# 发送飞书通知
+def send_feishu_notification(webhook_url, message):
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    data = {
+        "msg_type": "post",
+        "content": {
+            "post": {
+                "zh_cn": {
+                    "title": "抢座位系统通知",
+                    "content": [
+                        {
+                            "tag": "text",
+                            "text": message
+                        }
+                    ]
+                }
+            }
+        }
+    }
+    response = requests.post(webhook_url, headers=headers, json=data)
+    return response.status_code == 200
 
 # 用户注册
 @app.route("/register", methods=["GET", "POST"])
@@ -189,6 +223,7 @@ def home():
             cookie = request.form.get("cookie")
             seat_id = request.form.get("seat_id")
             time_slots = request.form.getlist("time_slots")
+            feishu_webhook = request.form.get("feishu_webhook")  # 获取飞书Webhook URL
 
             if not cookie or not seat_id or not time_slots:
                 return "请填写完整信息"
@@ -199,18 +234,27 @@ def home():
             else:
                 date = now.strftime('%Y-%m-%d')
 
+            # 发送加入成功通知
+            if not send_feishu_notification(feishu_webhook, "加入抢座位系统成功"):
+                return "飞书通知发送失败"
+
             # 不立即执行预约，只保存预约记录
             booking = {
                 'user_id': user_id,
                 'cookie': cookie,
                 'seat_id': seat_id,
                 'date': date,
-                'time_slots': ','.join(time_slots),
+                'time_slots': time_slots,
                 'processed': False,
-                'result': "预约记录已保存，待自动执行"
+                'result': "预约记录已保存，待自动执行",
+                'feishu_webhook': feishu_webhook
             }
 
             save_booking(booking)
+
+            # 发送预约保存成功通知
+            if not send_feishu_notification(feishu_webhook, "预约记录已保存，将在明早6:05自动执行"):
+                return "飞书通知发送失败"
 
             return "预约记录已保存，将在明早6:05自动执行"
         except Exception as e:
@@ -275,6 +319,9 @@ def auto_book_seat():
                         success_count += 1
                 booking['processed'] = True
                 booking['result'] = f"成功预约 {success_count} 个时间段"
+                # 发送预约成功通知
+                if not send_feishu_notification(booking['feishu_webhook'], booking['result']):
+                    print("飞书通知发送失败")
             except Exception as e:
                 booking['result'] = f"预约失败: {str(e)}"
             update_booking(booking)
@@ -288,15 +335,44 @@ def auto_book_seat():
 # 定时获取座位数据
 def get_seat_data():
     try:
-        data = {
-            'rq': datetime.now().strftime('%Y-%m-%d'),
-            'sjdId': 'da7bd7e2416246aeb4a35306d75f629b'  # 示例时间段ID
-        }
-        response = requests.post(get_seats_url, headers=headers, data=data, timeout=10)
-        if response.status_code == 200:
-            print("Seat data retrieved successfully.")
-        else:
-            print(f"Failed to retrieve seat data: {response.status_code}")
+        # 从数据库中查询所有用户的 cookie
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute("SELECT cookie FROM bookings WHERE processed = 0")
+        cookies = [row[0] for row in cursor.fetchall()]
+        conn.close()
+
+        # 为每个 cookie 发送请求
+        for cookie in cookies:
+            # 设置请求头
+            headers = {
+                'Connection': 'keep-alive',
+                'Content-Length': '52',  # 这个值可能需要根据实际的请求体长度动态设置
+                'sec-ch-ua-platform': '"Android"',
+                'X-Requested-With': 'XMLHttpRequest',
+                'User-Agent': 'Mozilla/5.0 (Linux; Android 12; HBN-AL80 Build/HUAWEIHBN-AL80; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.6723.103 Mobile Safari/537.36 XWEB/1300199 MMWEBSDK/20241103 MMWEBID/7828 MicroMessenger/8.0.55.2780(0x28003737) WeChat/arm64 Weixin NetType/4G Language/zh_CN ABI/arm64',
+                'Accept': '*/*',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Origin': 'https://jcc.educationgroup.cn',
+                'Sec-Fetch-Site': 'same-origin',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Dest': 'empty',
+                'Referer': 'https://jcc.educationgroup.cn/tsg/kzwWx/index',
+                'Accept-Encoding': 'gzip, deflate, br, zstd',
+                'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Cookie': cookie  # 动态设置用户的 cookie
+            }
+            # 设置请求体
+            data = {
+                'rq': datetime.now().strftime('%Y-%m-%d'),  # 格式化当前日期
+                'sjdId': 'a9596c67c7ab4f5687a0e1a5cb3ae431'  # 固定的时间段 ID
+            }
+            # 发送请求
+            response = requests.post(get_seats_url, headers=headers, data=data, timeout=10)
+            if response.status_code == 200:
+                print("Seat data retrieved successfully for cookie:", cookie)
+            else:
+                print(f"Failed to retrieve seat data for cookie {cookie}: {response.status_code}")
     except Exception as e:
         print(f"Error retrieving seat data: {str(e)}")
 
