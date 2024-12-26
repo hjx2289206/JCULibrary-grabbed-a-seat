@@ -13,6 +13,7 @@ DB_FILE = 'bookings.db'
 
 # 配置信息
 url = 'https://jcc.educationgroup.cn/tsg/kzwWx/save'
+get_seats_url = 'https://jcc.educationgroup.cn/tsg/kzwWx/getZws'
 headers = {
     'User-Agent': 'Mozilla/5.0 (Linux; Android 12; HBN-AL80 Build/HUAWEIHBN-AL80; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.6723.103 Mobile Safari/537.36 XWEB/1300199 MMWEBSDK/20241103 MMWEBID/7828 MicroMessenger/8.0.55.2780(0x28003737) WeChat/arm64 Weixin NetType/4G Language/zh_CN ABI/arm64',
     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
@@ -181,23 +182,23 @@ def cancel_booking(booking_id):
 def home():
     if "user_id" not in session:
         return redirect(url_for("login"))
-    
+
     if request.method == "POST":
         try:
             user_id = session["user_id"]
             cookie = request.form.get("cookie")
             seat_id = request.form.get("seat_id")
             time_slots = request.form.getlist("time_slots")
-            
+
             if not cookie or not seat_id or not time_slots:
                 return "请填写完整信息"
-            
+
             now = datetime.now()
             if now.hour >= 6:
                 date = (now + timedelta(days=1)).strftime('%Y-%m-%d')
             else:
                 date = now.strftime('%Y-%m-%d')
-            
+
             # 不立即执行预约，只保存预约记录
             booking = {
                 'user_id': user_id,
@@ -208,9 +209,9 @@ def home():
                 'processed': False,
                 'result': "预约记录已保存，待自动执行"
             }
-            
+
             save_booking(booking)
-            
+
             return "预约记录已保存，将在明早6:05自动执行"
         except Exception as e:
             return f"预约失败: {str(e)}"
@@ -277,17 +278,34 @@ def auto_book_seat():
             except Exception as e:
                 booking['result'] = f"预约失败: {str(e)}"
             update_booking(booking)
-        
+
         # 清除所有预约记录
         delete_all_bookings()
-        
+
     except Exception as e:
         print(f"自动预约任务失败: {str(e)}")
 
+# 定时获取座位数据
+def get_seat_data():
+    try:
+        data = {
+            'rq': datetime.now().strftime('%Y-%m-%d'),
+            'sjdId': 'da7bd7e2416246aeb4a35306d75f629b'  # 示例时间段ID
+        }
+        response = requests.post(get_seats_url, headers=headers, data=data, timeout=10)
+        if response.status_code == 200:
+            print("Seat data retrieved successfully.")
+        else:
+            print(f"Failed to retrieve seat data: {response.status_code}")
+    except Exception as e:
+        print(f"Error retrieving seat data: {str(e)}")
+
 scheduler = BackgroundScheduler()
 scheduler.add_job(auto_book_seat, 'cron', hour=6, minute=5)
+scheduler.add_job(get_seat_data, 'interval', minutes=5)  # 每5分钟获取一次座位数据
 scheduler.start()
 
 if __name__ == "__main__":
     init_db()
+    get_seat_data()  # 初始化任务
     app.run(debug=True, host='0.0.0.0', port=5000)
