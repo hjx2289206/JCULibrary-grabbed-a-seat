@@ -5,6 +5,7 @@ import requests
 from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from init_db import init_db  # 导入 init_db 函数
+import logging
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'  # 请使用更安全的密钥
@@ -18,6 +19,9 @@ headers = {
     'User-Agent': 'Mozilla/5.0 (Linux; Android 12; HBN-AL80 Build/HUAWEIHBN-AL80; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.6723.103 Mobile Safari/537.36 XWEB/1300199 MMWEBSDK/20241103 MMWEBID/7828 MicroMessenger/8.0.55.2780(0x28003737) WeChat/arm64 Weixin NetType/4G Language/zh_CN ABI/arm64',
     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
 }
+
+# 配置logging
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # 已有座位数据
 seat_data = {
@@ -292,6 +296,52 @@ def load_bookings():
     return bookings
 
 # 自动预约任务
+def get_current_seats(cookie, sjdId):
+    headers = {
+        'Connection': 'keep-alive',
+        'Content-Length': '52',
+        'sec-ch-ua-platform': '"Android"',
+        'X-Requested-With': 'XMLHttpRequest',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 12; HBN-AL80 Build/HUAWEIHBN-AL80; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.6723.103 Mobile Safari/537.36 XWEB/1300199 MMWEBSDK/20241103 MMWEBID/7828 MicroMessenger/8.0.55.2780(0x28003737) WeChat/arm64 Weixin NetType/WIFI Language/zh_CN ABI/arm64',
+        'Accept': '*/*',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Origin': 'https://jcc.educationgroup.cn',
+        'Sec-Fetch-Site': 'same-origin',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Dest': 'empty',
+        'Referer': 'https://jcc.educationgroup.cn/tsg/kzwWx/index',
+        'Accept-Encoding': 'gzip, deflate, br, zstd',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Cookie': cookie
+    }
+    data = {
+        'rq': datetime.now().strftime('%Y-%m-%d'),
+        'sjdId': sjdId
+    }
+    response = requests.post(get_seats_url, headers=headers, data=data, timeout=10)
+    if response.status_code == 200:
+        current_seats = response.json()
+        return current_seats.get('data', [])
+    else:
+        logging.error("Failed to retrieve current seats data")
+        return []
+
+def filter_zones(seats_data):
+    filtered_data = {
+        '3F(Z区)': [],
+        '4F(Z区)': [],
+        '5F(Z区)': []
+    }
+    for area in seats_data:
+        room_name = area.get('roomName', '')
+        if "3F(Z区)" in room_name:
+            filtered_data['3F(Z区)'].extend(area.get('zwList', []))
+        elif "4F(Z区)" in room_name:
+            filtered_data['4F(Z区)'].extend(area.get('zwList', []))
+        elif "5F(Z区)" in room_name:
+            filtered_data['5F(Z区)'].extend(area.get('zwList', []))
+    return filtered_data
+
 def auto_book_seat():
     try:
         bookings = load_bookings()
@@ -301,25 +351,96 @@ def auto_book_seat():
             try:
                 headers['Cookie'] = booking['cookie']
                 success_count = 0
+                available_seats = {}
+                assigned_slots = []
+                failure_details = []
+                seat_code_map = {}
+                seat_floor_map = {}
+                all_slots_success = True
+
                 for sjdId in booking['time_slots']:
-                    data = {
-                        'rq': booking['date'],
-                        'sjdId': sjdId,
-                        'zwId': booking['seat_id'],
-                    }
-                    response = requests.post(url, headers=headers, data=data, timeout=10)
-                    if response.status_code == 200:
-                        success_count += 1
+                    current_seats_data = get_current_seats(booking['cookie'], sjdId)
+                    filtered_seats_data = filter_zones(current_seats_data)
+
+                    for floor, seats in filtered_seats_data.items():
+                        for seat in seats:
+                            seat_code_map[seat['id']] = seat['zwCode']
+                            seat_floor_map[seat['id']] = floor
+                            if seat['id'] == booking['seat_id']:
+                                if booking['seat_id'] not in available_seats:
+                                    available_seats[booking['seat_id']] = []
+                                available_seats[booking['seat_id']].append(sjdId)
+                            elif sjdId not in available_seats.get(seat['id'], []):
+                                available_seats[seat['id']] = available_seats.get(seat['id'], [])
+                                available_seats[seat['id']].append(sjdId)
+
+                for sjdId in booking['time_slots']:
+                    if sjdId in available_seats.get(booking['seat_id'], []):
+                        data = {
+                            'rq': booking['date'],
+                            'sjdId': sjdId,
+                            'zwId': booking['seat_id'],
+                        }
+                        response = requests.post(url, headers=headers, data=data, timeout=10)
+                        if response.status_code == 200:
+                            assigned_slots.append((sjdId, booking['seat_id']))
+                            success_count += 1
+                        else:
+                            all_slots_success = False
+                            failure_details.append((sjdId, booking['seat_id'], response.status_code))
+                    else:
+                        all_slots_success = False
+                        for seat_id, slots in available_seats.items():
+                            if sjdId in slots:
+                                data = {
+                                    'rq': booking['date'],
+                                    'sjdId': sjdId,
+                                    'zwId': seat_id,
+                                }
+                                response = requests.post(url, headers=headers, data=data, timeout=10)
+                                if response.status_code == 200:
+                                    assigned_slots.append((sjdId, seat_id))
+                                    success_count += 1
+                                    break
+                                else:
+                                    failure_details.append((sjdId, seat_id, response.status_code))
+                        else:
+                            floor_zones = next((key for key, seats in filtered_seats_data.items() if booking['seat_id'] in [seat['id'] for seat in seats]), None)
+                            if floor_zones:
+                                for seat in filtered_seats_data[floor_zones]:
+                                    if sjdId in available_seats.get(seat['id'], []):
+                                        data = {
+                                            'rq': booking['date'],
+                                            'sjdId': sjdId,
+                                            'zwId': seat['id'],
+                                        }
+                                        response = requests.post(url, headers=headers, data=data, timeout=10)
+                                        if response.status_code == 200:
+                                            assigned_slots.append((sjdId, seat['id']))
+                                            success_count += 1
+                                            break
+                                        else:
+                                            failure_details.append((sjdId, seat['id'], response.status_code))
+
+                if assigned_slots:
+                    if all_slots_success:
+                        booking['result'] = "\n".join([f"成功预约 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {sjdId}" for sjdId, seat_id in assigned_slots])
+                    else:
+                        booking['result'] = "\n".join([f"成功预约 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {sjdId}" for sjdId, seat_id in assigned_slots])
+                        booking['result'] += "\n所选座位已被占用，自动更改为其他座位。"
+                    booking['result'] += f"\n成功预约 {success_count} 个时间段"
+
+                if failure_details:
+                    booking['result'] += "\n".join([f"预约失败 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {sjdId}, 错误代码: {status_code}" for sjdId, seat_id, status_code in failure_details])
+
                 booking['processed'] = True
-                booking['result'] = f"成功预约 {success_count} 个时间段"
-                # 发送预约成功通知
                 if not send_feishu_notification(booking['feishu_webhook'], booking['result']):
                     print("飞书通知发送失败")
+
             except Exception as e:
                 booking['result'] = f"预约失败: {str(e)}"
             update_booking(booking)
 
-        # 清除所有预约记录
         delete_all_bookings()
 
     except Exception as e:
