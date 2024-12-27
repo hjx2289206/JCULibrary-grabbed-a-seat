@@ -7,6 +7,10 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from init_db import init_db  # 导入 init_db 函数
 import logging
 
+# 初始化调度器
+scheduler = BackgroundScheduler()
+scheduler.start()
+
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'  # 请使用更安全的密钥
 
@@ -65,21 +69,52 @@ def save_booking(booking):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute('''
-    INSERT INTO bookings (user_id, cookie, seat_id, date, time_slots, processed, result)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (booking['user_id'], booking['cookie'], booking['seat_id'], booking['date'], booking['time_slots'], booking['processed'], booking['result']))
+    INSERT INTO bookings (user_id, cookie, seat_id, date, time_slots, processed, result, feishu_webhook, loop_booking, frequency)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        booking['user_id'], 
+        booking['cookie'], 
+        booking['seat_id'], 
+        booking['date'], 
+        booking['time_slots'], 
+        booking['processed'], 
+        booking['result'], 
+        booking['feishu_webhook'], 
+        booking['loop_booking'], 
+        booking['frequency']
+    ))
+    booking_id = cursor.lastrowid
     conn.commit()
     conn.close()
+    return booking_id
 
 # 更新预约信息
 def update_booking(booking):
+    print(f"更新预约: {booking}")  # 调试输出
+    if not booking['time_slots'] or not all(booking['time_slots']):
+        print("警告: time_slots 列表为空或包含无效值")
+    else:
+        print(f"time_slots 列表内容: {booking['time_slots']}")
+
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute('''
     UPDATE bookings
-    SET user_id = ?, cookie = ?, seat_id = ?, date = ?, time_slots = ?, processed = ?, result = ?
+    SET user_id = ?, cookie = ?, seat_id = ?, date = ?, time_slots = ?, processed = ?, result = ?, feishu_webhook = ?, loop_booking = ?, frequency = ?
     WHERE id = ?
-    ''', (booking['user_id'], booking['cookie'], booking['seat_id'], booking['date'], ','.join(booking['time_slots']), booking['processed'], booking['result'], booking['id']))
+    ''', (
+        booking['user_id'], 
+        booking['cookie'], 
+        booking['seat_id'], 
+        booking['date'], 
+        ','.join(booking['time_slots']),  # 确保 time_slots 格式正确
+        booking['processed'], 
+        booking['result'], 
+        booking['feishu_webhook'], 
+        booking['loop_booking'], 
+        booking['frequency'], 
+        booking['id']
+    ))
     conn.commit()
     conn.close()
 
@@ -92,9 +127,11 @@ def delete_all_bookings():
     conn.close()
 
 # 发送飞书通知
-def send_feishu_notification(webhook_url, message):
-    if not webhook_url:
-        return False  # 如果Webhook URL为空，则不发送通知，视为失败
+def send_feishu_notification(feishu_webhook, message):
+    if not feishu_webhook:
+        # 如果没有提供飞书 Webhook 地址，直接返回 True 表示成功
+        return True
+
     headers = {
         'Content-Type': 'application/json'
     }
@@ -104,7 +141,7 @@ def send_feishu_notification(webhook_url, message):
             "text": message
         }
     }
-    response = requests.post(webhook_url, headers=headers, json=data)
+    response = requests.post(feishu_webhook, headers=headers, json=data)
     return response.status_code == 200
 
 # 用户注册
@@ -177,7 +214,10 @@ def my_bookings():
             'date': row[4],
             'time_slots': row[5].split(','),  # 假设时间段是以逗号分隔的字符串
             'processed': row[6],
-            'result': row[7]
+            'result': row[7],
+            'feishu_webhook': row[8],
+            'loop_booking': row[9],
+            'frequency': row[10]
         }
         # 使用 seat_data 获取座位号
         for floor, seats in seat_data.items():
@@ -196,14 +236,35 @@ def my_bookings():
 def cancel_booking(booking_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
-    
+
     user_id = session["user_id"]
 
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
+    
+    # 获取飞书 webhook
+    cursor.execute("SELECT feishu_webhook FROM bookings WHERE id = ? AND user_id = ?", (booking_id, user_id))
+    feishu_webhook = cursor.fetchone()
+    
+    if feishu_webhook:
+        feishu_webhook = feishu_webhook[0]
+
+    # 删除预约记录
     cursor.execute("DELETE FROM bookings WHERE id = ? AND user_id = ?", (booking_id, user_id))
     conn.commit()
     conn.close()
+
+    # 停止调度器任务
+    job_id = f"booking_{booking_id}"
+    try:
+        scheduler.remove_job(job_id)
+        print(f"任务 {job_id} 已取消")
+    except Exception as e:
+        print(f"无法取消任务 {job_id}：{e}")
+
+    # 发送飞书通知，告知用户已取消预约
+    if feishu_webhook:
+        send_feishu_notification(feishu_webhook, "预约已取消")
 
     return redirect(url_for("my_bookings"))
 
@@ -220,42 +281,86 @@ def home():
             seat_id = request.form.get("seat_id")
             time_slots = request.form.getlist("time_slots")
             feishu_webhook = request.form.get("feishu_webhook")  # 获取飞书Webhook URL
+            operation_mode = request.form.get("operation_mode")  # 获取操作方式
+            frequency = 10  # 默认每10秒查询一次
 
             if not cookie or not seat_id or not time_slots:
-                return "请填写完整信息"
+                return jsonify({'message': '请填写完整信息'})
 
             now = datetime.now()
-            if now.hour >= 6:
-                date = (now + timedelta(days=1)).strftime('%Y-%m-%d')
+
+            # 根据操作方式设置日期
+            if operation_mode == "auto_book":
+                if now.hour >= 6:
+                    date = (now + timedelta(days=1)).strftime('%Y-%m-%d')
+                else:
+                    date = now.strftime('%Y-%m-%d')
             else:
+                # 循环预约使用今天的日期
                 date = now.strftime('%Y-%m-%d')
 
             # 发送加入成功通知
             success = send_feishu_notification(feishu_webhook, "加入抢座位系统成功")
             if not success:
-                return "飞书通知发送失败"
+                return jsonify({'message': '飞书通知发送失败'})
 
-            # 不立即执行预约，只保存预约记录
-            booking = {
-                'user_id': user_id,
-                'cookie': cookie,
-                'seat_id': seat_id,
-                'date': date,
-                'time_slots': ','.join(time_slots),
-                'processed': False,
-                'result': "预约记录已保存，待自动执行",
-                'feishu_webhook': feishu_webhook
-            }
+            # 转换时间段 ID 列表为字符串
+            time_slots_str = ','.join(time_slots)
 
-            save_booking(booking)
+            if operation_mode == "auto_book":
+                booking = {
+                    'user_id': user_id,
+                    'cookie': cookie,
+                    'seat_id': seat_id,
+                    'date': date,
+                    'time_slots': time_slots_str,
+                    'processed': False,
+                    'result': "预约记录已保存，待自动执行",
+                    'feishu_webhook': feishu_webhook,
+                    'loop_booking': False,
+                    'frequency': frequency
+                }
 
-            # 发送预约保存成功通知
-            if not send_feishu_notification(feishu_webhook, "预约记录已保存，将在明早6:05自动执行"):
-                return "飞书通知发送失败"
+                booking_id = save_booking(booking)
+                print(f"预约记录已保存，ID: {booking_id}")
 
-            return "预约记录已保存，将在明早6:05自动执行"
+                if not send_feishu_notification(feishu_webhook, "预约记录已保存，将在明早6:05自动执行"):
+                    return jsonify({'message': '飞书通知发送失败'})
+
+                return jsonify({'message': '预约记录已保存，将在明早6:05自动执行'})
+            else:
+                booking = {
+                    'user_id': user_id,
+                    'cookie': cookie,
+                    'seat_id': seat_id,
+                    'date': date,
+                    'time_slots': time_slots_str,
+                    'processed': False,
+                    'result': None,
+                    'feishu_webhook': feishu_webhook,
+                    'loop_booking': True,
+                    'frequency': frequency
+                }
+
+                booking_id = save_booking(booking)
+                booking['id'] = booking_id
+
+                print(f"循环预约记录已保存，ID: {booking_id}")
+
+                # 创建一个唯一的 job_id
+                job_id = f"booking_{booking_id}"
+
+                # 添加调度器任务，定期执行预约任务
+                scheduler.add_job(lambda: auto_book_seat_single(booking, job_id), 'interval', seconds=frequency, id=job_id)
+
+                if not send_feishu_notification(feishu_webhook, "预约信息已保存，将每10秒查询一次座位信息"):
+                    return jsonify({'message': '飞书通知发送失败'})
+
+                print(f"循环预约任务已启动，Job ID: {job_id}")
+                return jsonify({'message': '预约信息已保存，将每10秒查询一次座位信息'})
         except Exception as e:
-            return f"预约失败: {str(e)}"
+            print(f"处理预约请求时出错: {str(e)}")
+            return jsonify({'message': f'预约失败: {str(e)}'})
 
     # 生成座位信息
     floors = {}
@@ -278,19 +383,23 @@ def home():
 def load_bookings():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM bookings')
+    cursor.execute("SELECT * FROM bookings")
     rows = cursor.fetchall()
     bookings = []
     for row in rows:
+        print(f"Raw row data: {row}")  # 调试输出
         bookings.append({
             'id': row[0],
             'user_id': row[1],
             'cookie': row[2],
             'seat_id': row[3],
             'date': row[4],
-            'time_slots': row[5].split(','),
+            'time_slots': row[5].split(','),  # 确保分割时间段ID
             'processed': row[6],
-            'result': row[7]
+            'result': row[7],
+            'feishu_webhook': row[8],
+            'loop_booking': row[9],
+            'frequency': row[10]
         })
     conn.close()
     return bookings
@@ -320,10 +429,15 @@ def get_current_seats(cookie, sjdId):
     }
     response = requests.post(get_seats_url, headers=headers, data=data, timeout=10)
     if response.status_code == 200:
-        current_seats = response.json()
-        return current_seats.get('data', [])
+        try:
+            current_seats = response.json()
+            print(f"获取到座位数据: {current_seats}")
+            return current_seats.get('data', [])
+        except ValueError:
+            print("解析座位数据时出错")
+            return []
     else:
-        logging.error("Failed to retrieve current seats data")
+        print("获取当前座位数据失败")
         return []
 
 def filter_zones(seats_data):
@@ -342,6 +456,139 @@ def filter_zones(seats_data):
             filtered_data['5F(Z区)'].extend(area.get('zwList', []))
     return filtered_data
 
+def auto_book_seat_single(booking, job_id):
+    try:
+        print(f"开始处理预约任务: {booking['id']}")
+
+        # 确保 time_slots 在解析后是列表
+        if isinstance(booking['time_slots'], str):
+            time_slots = booking['time_slots'].split(',')
+        elif isinstance(booking['time_slots'], list):
+            time_slots = booking['time_slots']
+        else:
+            raise ValueError("time_slots must be a string or list")
+        
+        print(f"解析后的时间段: {time_slots}")
+        booking['time_slots'] = time_slots  # 保存解析后的列表
+
+        headers = {
+            'Connection': 'keep-alive',
+            'sec-ch-ua-platform': '"Android"',
+            'X-Requested-With': 'XMLHttpRequest',
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 12; HBN-AL80 Build/HUAWEIHBN-AL80; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.6723.103 Mobile Safari/537.36 XWEB/1300199 MMWEBSDK/20241103 MMWEBID/7828 MicroMessenger/8.0.55.2780(0x28003737) WeChat/arm64 Weixin NetType/WIFI Language/zh_CN ABI/arm64',
+            'Accept': '*/*',
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'Origin': 'https://jcc.educationgroup.cn',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Dest': 'empty',
+            'Referer': 'https://jcc.educationgroup.cn/tsg/kzwWx/index',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cookie': booking['cookie']
+        }
+
+        available_seats = {}
+        assigned_slots = []
+        failure_details = []
+        seat_code_map = {}
+        seat_floor_map = {}
+        all_slots_success = True
+
+        for sjdId in time_slots:
+            current_seats_data = get_current_seats(booking['cookie'], sjdId)
+            filtered_seats_data = filter_zones(current_seats_data)
+
+            # 分析座位数据
+            for floor, seats in filtered_seats_data.items():
+                for seat in seats:
+                    seat_code_map[seat['id']] = seat['zwCode']
+                    seat_floor_map[seat['id']] = floor
+                    if seat['id'] == booking['seat_id']:
+                        if booking['seat_id'] not in available_seats:
+                            available_seats[booking['seat_id']] = []
+                        available_seats[booking['seat_id']].append(sjdId)
+                    elif sjdId not in available_seats.get(seat['id'], []):
+                        available_seats[seat['id']] = available_seats.get(seat['id'], [])
+                        available_seats[seat['id']].append(sjdId)
+
+        print(f"可用座位数据: {available_seats}")
+
+        # 预约逻辑
+        for sjdId in time_slots:
+            if sjdId in available_seats.get(booking['seat_id'], []):
+                data = {
+                    'rq': booking['date'],
+                    'sjdId': sjdId,
+                    'zwId': booking['seat_id'],
+                }
+                response = requests.post(url, headers=headers, data=data, timeout=10)
+                if response.status_code == 200:
+                    assigned_slots.append((sjdId, booking['seat_id']))
+                else:
+                    all_slots_success = False
+                    failure_details.append((sjdId, booking['seat_id'], response.status_code))
+            else:
+                all_slots_success = False
+                for seat_id, slots in available_seats.items():
+                    if sjdId in slots:
+                        data = {
+                            'rq': booking['date'],
+                            'sjdId': sjdId,
+                            'zwId': seat_id,
+                        }
+                        response = requests.post(url, headers=headers, data=data, timeout=10)
+                        if response.status_code == 200:
+                            assigned_slots.append((sjdId, seat_id))
+                            break
+                        else:
+                            failure_details.append((sjdId, seat_id, response.status_code))
+                else:
+                    floor_zones = next((key for key, seats in filtered_seats_data.items() if booking['seat_id'] in [seat['id'] for seat in seats]), None)
+                    if floor_zones:
+                        for seat in filtered_seats_data[floor_zones]:
+                            if sjdId in available_seats.get(seat['id'], []):
+                                data = {
+                                    'rq': booking['date'],
+                                    'sjdId': sjdId,
+                                    'zwId': seat['id'],
+                                }
+                                response = requests.post(url, headers=headers, data=data, timeout=10)
+                                if response.status_code == 200:
+                                    assigned_slots.append((sjdId, seat['id']))
+                                    break
+                                else:
+                                    failure_details.append((sjdId, seat['id'], response.status_code))
+
+        # 输出结果
+        if assigned_slots:
+            if all_slots_success:
+                booking['result'] = "\n".join([f"成功预约 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {sjdId}" for sjdId, seat_id in assigned_slots])
+                # 预约成功，取消调度器任务
+                scheduler.remove_job(job_id)
+                print(f"预约成功，任务 {job_id} 已取消")
+            else:
+                booking['result'] = "\n".join([f"成功预约 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {sjdId}" for sjdId, seat_id in assigned_slots])
+                booking['result'] += "\n所选座位已被占用，自动更改为其他座位。"
+
+        if failure_details:
+            booking['result'] += "\n".join([f"预约失败 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {sjdId}, 错误代码: {status_code}" for sjdId, seat_id, status_code in failure_details])
+
+        print(f"预约结果: {booking['result']}")
+
+        booking['processed'] = True
+        update_booking(booking)
+        
+        # 发送飞书通知
+        send_feishu_notification(booking['feishu_webhook'], booking['result'])
+
+    except Exception as e:
+        booking['result'] = f"预约失败: {str(e)}"
+        print(f"处理预约任务时出错: {booking['result']}")
+        update_booking(booking)
+
+from apscheduler.schedulers.background import BackgroundScheduler
+
 def auto_book_seat():
     try:
         bookings = load_bookings()
@@ -349,7 +596,23 @@ def auto_book_seat():
             if booking['processed']:
                 continue
             try:
-                headers['Cookie'] = booking['cookie']
+                headers = {
+                    'Connection': 'keep-alive',
+                    'sec-ch-ua-platform': '"Android"',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'User-Agent': 'Mozilla/5.0 (Linux; Android 12; HBN-AL80 Build/HUAWEIHBN-AL80; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.6723.103 Mobile Safari/537.36 XWEB/1300199 MMWEBSDK/20241103 MMWEBID/7828 MicroMessenger/8.0.55.2780(0x28003737) WeChat/arm64 Weixin NetType/WIFI Language/zh_CN ABI/arm64',
+                    'Accept': '*/*',
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'Origin': 'https://jcc.educationgroup.cn',
+                    'Sec-Fetch-Site': 'same-origin',
+                    'Sec-Fetch-Mode': 'cors',
+                    'Sec-Fetch-Dest': 'empty',
+                    'Referer': 'https://jcc.educationgroup.cn/tsg/kzwWx/index',
+                    'Accept-Encoding': 'gzip, deflate, br, zstd',
+                    'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+                    'Cookie': booking['cookie']
+                }
+
                 success_count = 0
                 available_seats = {}
                 assigned_slots = []
@@ -358,7 +621,15 @@ def auto_book_seat():
                 seat_floor_map = {}
                 all_slots_success = True
 
-                for sjdId in booking['time_slots']:
+                # 确保 time_slots 是列表
+                if isinstance(booking['time_slots'], str):
+                    time_slots = booking['time_slots'].split(',')
+                elif isinstance(booking['time_slots'], list):
+                    time_slots = booking['time_slots']
+                else:
+                    raise ValueError("time_slots must be a string or list")
+
+                for sjdId in time_slots:
                     current_seats_data = get_current_seats(booking['cookie'], sjdId)
                     filtered_seats_data = filter_zones(current_seats_data)
 
@@ -374,7 +645,8 @@ def auto_book_seat():
                                 available_seats[seat['id']] = available_seats.get(seat['id'], [])
                                 available_seats[seat['id']].append(sjdId)
 
-                for sjdId in booking['time_slots']:
+                # 预约逻辑
+                for sjdId in time_slots:
                     if sjdId in available_seats.get(booking['seat_id'], []):
                         data = {
                             'rq': booking['date'],
@@ -422,6 +694,7 @@ def auto_book_seat():
                                         else:
                                             failure_details.append((sjdId, seat['id'], response.status_code))
 
+                # 输出结果
                 if assigned_slots:
                     if all_slots_success:
                         booking['result'] = "\n".join([f"成功预约 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {sjdId}" for sjdId, seat_id in assigned_slots])
@@ -434,12 +707,14 @@ def auto_book_seat():
                     booking['result'] += "\n".join([f"预约失败 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {sjdId}, 错误代码: {status_code}" for sjdId, seat_id, status_code in failure_details])
 
                 booking['processed'] = True
+                update_booking(booking)
+
                 if not send_feishu_notification(booking['feishu_webhook'], booking['result']):
                     print("飞书通知发送失败")
 
             except Exception as e:
                 booking['result'] = f"预约失败: {str(e)}"
-            update_booking(booking)
+                update_booking(booking)
 
         delete_all_bookings()
 

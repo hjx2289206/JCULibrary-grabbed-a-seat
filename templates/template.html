@@ -7,7 +7,7 @@
 <body>
     <div class="container">
         <h1>抢座位系统</h1>
-        
+
         <div class="navbar">
             <a href="{{ url_for('home') }}">首页</a>
             <a href="{{ url_for('my_bookings') }}">我的预约</a>
@@ -36,7 +36,7 @@
 
         <div id="result"></div>
         <div class="loading"></div>
-        
+
         <form id="bookingForm" method="post" action="/">
             <label for="cookie">Cookie:</label>
             <input type="text" id="cookie" name="cookie" required>
@@ -82,14 +82,26 @@
                 </label>
             </div>
 
-            <input type="submit" value="抢座位">
+            <label>选择操作方式:</label>
+            <div class="operation-mode">
+                <label>
+                    <input type="radio" name="operation_mode" value="auto_book" required>
+                    明天早上6:05自动预约
+                </label>
+                <label>
+                    <input type="radio" name="operation_mode" value="loop_book" required>
+                    立即开始循环查询预约
+                </label>
+            </div>
+
+            <input type="submit" value="提交">
         </form>
     </div>
 
     <script>
         document.getElementById('bookingForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
             // 验证至少选择了一个时间段
             const timeSlots = document.querySelectorAll('input[name="time_slots"]:checked');
             if (timeSlots.length === 0) {
@@ -99,26 +111,27 @@
                 result.className = 'error';
                 return;
             }
-            
-            const loading = document.querySelector('.loading');
+
             const result = document.getElementById('result');
+            const loading = document.querySelector('.loading');
             const form = this;
-            
+            const formData = new FormData(form);
+            const operationMode = form.querySelector('input[name="operation_mode"]:checked').value;
+
+            // 设置加载状态
             loading.style.display = 'block';
             result.style.display = 'none';
-            
-            const formData = new FormData(form);
-            
+
             fetch('/', {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.text())
+            .then(response => response.json())
             .then(data => {
                 loading.style.display = 'none';
                 result.style.display = 'block';
-                result.textContent = data;
-                result.className = data.includes('成功') ? 'success' : 'error';
+                result.textContent = data.message;
+                result.className = data.message.includes('成功') ? 'success' : 'error';
             })
             .catch(error => {
                 loading.style.display = 'none';

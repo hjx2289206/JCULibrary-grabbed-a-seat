@@ -25,6 +25,8 @@ def init_db():
         processed BOOLEAN NOT NULL,
         result TEXT,
         feishu_webhook TEXT,
+        loop_booking BOOLEAN DEFAULT FALSE,
+        frequency INTEGER DEFAULT 10,
         FOREIGN KEY (user_id) REFERENCES users (id)
     )
     ''')
