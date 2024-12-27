@@ -90,24 +90,14 @@ def delete_all_bookings():
 # 发送飞书通知
 def send_feishu_notification(webhook_url, message):
     if not webhook_url:
-        return True  # 如果Webhook URL为空，则不发送通知，视为成功
+        return False  # 如果Webhook URL为空，则不发送通知，视为失败
     headers = {
         'Content-Type': 'application/json'
     }
     data = {
-        "msg_type": "post",
+        "msg_type": "text",
         "content": {
-            "post": {
-                "zh_cn": {
-                    "title": "抢座位系统通知",
-                    "content": [
-                        {
-                            "tag": "text",
-                            "text": message
-                        }
-                    ]
-                }
-            }
+            "text": message
         }
     }
     response = requests.post(webhook_url, headers=headers, json=data)
@@ -237,7 +227,8 @@ def home():
                 date = now.strftime('%Y-%m-%d')
 
             # 发送加入成功通知
-            if not send_feishu_notification(feishu_webhook, "加入抢座位系统成功"):
+            success = send_feishu_notification(feishu_webhook, "加入抢座位系统成功")
+            if not success:
                 return "飞书通知发送失败"
 
             # 不立即执行预约，只保存预约记录
