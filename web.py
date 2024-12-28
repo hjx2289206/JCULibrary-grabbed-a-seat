@@ -39,25 +39,34 @@ seat_data = {
     }},
     '4F': {'Z': {
         1: 'EBD2FE1B50D3A3D0E0530C96CE0AF3C1', 3: 'EBD2FE1B50E3A3D0E0530C96CE0AF3C1',
-        4: 'EBD2FE1B50EAA3D0E0530C96CE0AF3C1', 7: 'EBD2FE1B50DFA3D0E0530C96CE0AF3C1',
-        8: 'EBD2FE1B50EBA3D0E0530C96CE0AF3C1', 9: 'EBD2FE1B50E4A3D0E0530C96CE0AF3C1',
-        11: 'EBD2FE1B50D8A3D0E0530C96CE0AF3C1', 12: 'EBD2FE1B50D4A3D0E0530C96CE0AF3C1',
-        15: 'EBD2FE1B50D9A3D0E0530C96CE0AF3C1', 16: 'EBD2FE1B50DDA3D0E0530C96CE0AF3C1',
-        17: 'EBD2FE1B50DEA3D0E0530C96CE0AF3C1', 18: 'EBD2FE1B50D0A3D0E0530C96CE0AF3C1',
-        21: 'EBD2FE1B50D1A3D0E0530C96CE0AF3C1', 25: 'EBD2FE1B50E7A3D0E0530C96CE0AF3C1',
-        30: 'EBD2FE1B50EEA3D0E0530C96CE0AF3C1', 31: 'EBD2FE1B50EFA3D0E0530C96CE0AF3C1',
-        33: 'EBD2FE1B50E5A3D0E0530C96CE0AF3C1'
+        4: 'EBD2FE1B50EAA3D0E0530C96CE0AF3C1', 6: 'EBD2FE1B50D7A3D0E0530C96CE0AF3C1',
+        7: 'EBD2FE1B50DFA3D0E0530C96CE0AF3C1', 8: 'EBD2FE1B50EBA3D0E0530C96CE0AF3C1',
+        9: 'EBD2FE1B50E4A3D0E0530C96CE0AF3C1', 11: 'EBD2FE1B50D8A3D0E0530C96CE0AF3C1',
+        12: 'EBD2FE1B50D4A3D0E0530C96CE0AF3C1', 15: 'EBD2FE1B50D9A3D0E0530C96CE0AF3C1',
+        16: 'EBD2FE1B50DDA3D0E0530C96CE0AF3C1', 17: 'EBD2FE1B50DEA3D0E0530C96CE0AF3C1',
+        18: 'EBD2FE1B50D0A3D0E0530C96CE0AF3C1', 21: 'EBD2FE1B50D1A3D0E0530C96CE0AF3C1',
+        25: 'EBD2FE1B50E7A3D0E0530C96CE0AF3C1', 30: 'EBD2FE1B50EEA3D0E0530C96CE0AF3C1',
+        31: 'EBD2FE1B50EFA3D0E0530C96CE0AF3C1', 33: 'EBD2FE1B50E5A3D0E0530C96CE0AF3C1'
     }},
     '5F': {'Z': {
-        4: 'EBD2FE1B5122A3D0E0530C96CE0AF3C1', 8: 'EBD2FE1B513AA3D0E0530C96CE0AF3C1',
-        9: 'EBD2FE1B512FA3D0E0530C96CE0AF3C1', 10: 'EBD2FE1B5144A3D0E0530C96CE0AF3C1',
-        12: 'EBD2FE1B513DA3D0E0530C96CE0AF3C1', 14: 'EBD2FE1B512AA3D0E0530C96CE0AF3C1',
-        16: 'EBD2FE1B513EA3D0E0530C96CE0AF3C1', 22: 'EBD2FE1B5131A3D0E0530C96CE0AF3C1',
-        24: 'EBD2FE1B5146A3D0E0530C96CE0AF3C1', 26: 'EBD2FE1B513BA3D0E0530C96CE0AF3C1',
-        28: 'EBD2FE1B5147A3D0E0530C96CE0AF3C1', 30: 'EBD2FE1B5132A3D0E0530C96CE0AF3C1',
-        33: 'EBD2FE1B5134A3D0E0530C96CE0AF3C1', 34: 'EBD2FE1B512AA3D0E0530C96CE0AF3C1',
-        36: 'EBD2FE1B5139A3D0E0530C96CE0AF3C1', 37: 'EBD2FE1B512DA3D0E0530C96CE0AF3C1'
+        4: 'EBD2FE1B5122A3D0E0530C96CE0AF3C1', 5: 'EBD2FE1B5137A3D0E0530C96CE0AF3C1',
+        8: 'EBD2FE1B513AA3D0E0530C96CE0AF3C1', 11: 'EBD2FE1B5142A3D0E0530C96CE0AF3C1',
+        15: 'EBD2FE1B5140A3D0E0530C96CE0AF3C1', 16: 'EBD2FE1B513EA3D0E0530C96CE0AF3C1',
+        17: 'EBD2FE1B5143A3D0E0530C96CE0AF3C1', 18: 'EBD2FE1B5123A3D0E0530C96CE0AF3C1',
+        20: 'EBD2FE1B5128A3D0E0530C96CE0AF3C1', 21: 'EBD2FE1B513CA3D0E0530C96CE0AF3C1',
+        22: 'EBD2FE1B5131A3D0E0530C96CE0AF3C1', 26: 'EBD2FE1B5125A3D0E0530C96CE0AF3C1',
+        27: 'EBD2FE1B513FA3D0E0530C96CE0AF3C1', 29: 'EBD2FE1B512CA3D0E0530C96CE0AF3C1',
+        34: 'EBD2FE1B512AA3D0E0530C96CE0AF3C1'
     }}
+}
+
+# 时间段数据
+time_slot_mapping = {
+    "6ba3ccd77482466b82a08e480c4299ee": "10:00 - 12:00",
+    "58fc242d7eff41b18f1e795b048f50d4": "12:00 - 14:00",
+    "da7bd7e2416246aeb4a35306d75f629b": "14:00 - 16:00",
+    "1ead11f7e214444986dbbf877f7de81d": "16:00 - 18:00",
+    "a9596c67c7ab4f5687a0e1a5cb3ae431": "18:00 - 22:00"
 }
 
 # 哈希密码
@@ -100,7 +109,7 @@ def update_booking(booking):
     cursor = conn.cursor()
     cursor.execute('''
     UPDATE bookings
-    SET user_id = ?, cookie = ?, seat_id = ?, date = ?, time_slots = ?, processed = ?, result = ?, feishu_webhook = ?, loop_booking = ?, frequency = ?
+    SET user_id = ?, cookie = ?, seat_id = ?, date = ?, time_slots = ?, processed = ?, result = ?, feishu_webhook = ?, loop_booking = ?, frequency = ?, last_result = ?
     WHERE id = ?
     ''', (
         booking['user_id'], 
@@ -113,6 +122,7 @@ def update_booking(booking):
         booking['feishu_webhook'], 
         booking['loop_booking'], 
         booking['frequency'], 
+        booking['last_result'],  # 更新 last_result 字段
         booking['id']
     ))
     conn.commit()
@@ -125,6 +135,21 @@ def delete_all_bookings():
     cursor.execute('DELETE FROM bookings')
     conn.commit()
     conn.close()
+
+# 格式化结果函数
+def format_result_with_time_slots(booking):
+    # 将 time_slots 从字符串转换为列表
+    time_slots = booking['time_slots'].split(',')
+
+    # 使用映射替换时间段ID为实际时间段
+    formatted_time_slots = [time_slot_mapping.get(slot, "Unknown Time Slot") for slot in time_slots]
+
+    # 构建新的 result 字符串
+    new_result = "成功预约以下时间段：\n" + "\n".join(formatted_time_slots)
+
+    # 更新 booking 字典中的 result 字段
+    booking['result'] = new_result
+    return booking
 
 # 发送飞书通知
 def send_feishu_notification(feishu_webhook, message):
@@ -399,7 +424,8 @@ def load_bookings():
             'result': row[7],
             'feishu_webhook': row[8],
             'loop_booking': row[9],
-            'frequency': row[10]
+            'frequency': row[10],
+            'last_result': row[11]  # 添加获取 last_result
         })
     conn.close()
     return bookings
@@ -455,6 +481,10 @@ def filter_zones(seats_data):
         elif "5F(Z区)" in room_name:
             filtered_data['5F(Z区)'].extend(area.get('zwList', []))
     return filtered_data
+
+# 辅助函数，用于检查消息是否重复
+def should_send_notification(last_message, current_message):
+    return current_message != last_message
 
 def auto_book_seat_single(booking, job_id):
     try:
@@ -515,7 +545,7 @@ def auto_book_seat_single(booking, job_id):
         print(f"可用座位数据: {available_seats}")
 
         # 预约逻辑
-        for sjdId in time_slots:
+        for sjdId in list(time_slots):  # 创建时间段列表的副本
             if sjdId in available_seats.get(booking['seat_id'], []):
                 data = {
                     'rq': booking['date'],
@@ -525,6 +555,7 @@ def auto_book_seat_single(booking, job_id):
                 response = requests.post(url, headers=headers, data=data, timeout=10)
                 if response.status_code == 200:
                     assigned_slots.append((sjdId, booking['seat_id']))
+                    booking['time_slots'].remove(sjdId)  # 移除已预约的时间段
                 else:
                     all_slots_success = False
                     failure_details.append((sjdId, booking['seat_id'], response.status_code))
@@ -540,6 +571,7 @@ def auto_book_seat_single(booking, job_id):
                         response = requests.post(url, headers=headers, data=data, timeout=10)
                         if response.status_code == 200:
                             assigned_slots.append((sjdId, seat_id))
+                            booking['time_slots'].remove(sjdId)  # 移除已预约的时间段
                             break
                         else:
                             failure_details.append((sjdId, seat_id, response.status_code))
@@ -556,38 +588,41 @@ def auto_book_seat_single(booking, job_id):
                                 response = requests.post(url, headers=headers, data=data, timeout=10)
                                 if response.status_code == 200:
                                     assigned_slots.append((sjdId, seat['id']))
+                                    booking['time_slots'].remove(sjdId)  # 移除已预约的时间段
                                     break
                                 else:
                                     failure_details.append((sjdId, seat['id'], response.status_code))
 
+        # 结果消息转换时间段ID
+        assigned_slots_formatted = [f"成功预约 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {time_slot_mapping.get(sjdId, 'Unknown Time Slot')}" for sjdId, seat_id in assigned_slots]
+        failure_details_formatted = [f"预约失败 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {time_slot_mapping.get(sjdId, 'Unknown Time Slot')}, 错误代码: {status_code}" for sjdId, seat_id, status_code in failure_details]
+
         # 输出结果
-        if assigned_slots:
-            if all_slots_success:
-                booking['result'] = "\n".join([f"成功预约 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {sjdId}" for sjdId, seat_id in assigned_slots])
-                # 预约成功，取消调度器任务
-                scheduler.remove_job(job_id)
-                print(f"预约成功，任务 {job_id} 已取消")
-            else:
-                booking['result'] = "\n".join([f"成功预约 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {sjdId}" for sjdId, seat_id in assigned_slots])
-                booking['result'] += "\n所选座位已被占用，自动更改为其他座位。"
+        result_message = ""
+        if assigned_slots_formatted:
+            result_message += "\n".join(assigned_slots_formatted)
+            if not all_slots_success:
+                result_message += "\n所选座位已被占用，自动更改为其他座位。"
+        if failure_details_formatted:
+            result_message += "\n".join(failure_details_formatted)
 
-        if failure_details:
-            booking['result'] += "\n".join([f"预约失败 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {sjdId}, 错误代码: {status_code}" for sjdId, seat_id, status_code in failure_details])
-
-        print(f"预约结果: {booking['result']}")
-
-        booking['processed'] = True
-        update_booking(booking)
-        
-        # 发送飞书通知
-        send_feishu_notification(booking['feishu_webhook'], booking['result'])
+        # 检查是否需要发送飞书通知
+        if result_message and should_send_notification(booking.get('last_result', ''), result_message):
+            print(f"预约结果: {result_message}")
+            booking['result'] = result_message
+            booking['processed'] = True
+            booking['last_result'] = result_message  # 更新最后消息状态
+            update_booking(booking)  # 更新数据库中的预约信息
+            send_feishu_notification(booking['feishu_webhook'], booking['result'])  # 发送飞书通知
 
     except Exception as e:
-        booking['result'] = f"预约失败: {str(e)}"
-        print(f"处理预约任务时出错: {booking['result']}")
+        error_message = f"预约失败: {str(e)}"
+        print(f"处理预约任务时出错: {error_message}")
+        booking['result'] = error_message
+        booking['processed'] = True
+        booking['last_result'] = error_message  # 更新最后消息状态
         update_booking(booking)
-
-from apscheduler.schedulers.background import BackgroundScheduler
+        send_feishu_notification(booking['feishu_webhook'], booking['result'])  # 发送飞书通知
 
 def auto_book_seat():
     try:
@@ -613,14 +648,6 @@ def auto_book_seat():
                     'Cookie': booking['cookie']
                 }
 
-                success_count = 0
-                available_seats = {}
-                assigned_slots = []
-                failure_details = []
-                seat_code_map = {}
-                seat_floor_map = {}
-                all_slots_success = True
-
                 # 确保 time_slots 是列表
                 if isinstance(booking['time_slots'], str):
                     time_slots = booking['time_slots'].split(',')
@@ -629,94 +656,19 @@ def auto_book_seat():
                 else:
                     raise ValueError("time_slots must be a string or list")
 
-                for sjdId in time_slots:
-                    current_seats_data = get_current_seats(booking['cookie'], sjdId)
-                    filtered_seats_data = filter_zones(current_seats_data)
+                # 调用 auto_book_seat_single 处理单个预约任务
+                auto_book_seat_single(booking, "N/A")  # 注意：这里不需要 job_id，因为我们不从调度器中移除任务
 
-                    for floor, seats in filtered_seats_data.items():
-                        for seat in seats:
-                            seat_code_map[seat['id']] = seat['zwCode']
-                            seat_floor_map[seat['id']] = floor
-                            if seat['id'] == booking['seat_id']:
-                                if booking['seat_id'] not in available_seats:
-                                    available_seats[booking['seat_id']] = []
-                                available_seats[booking['seat_id']].append(sjdId)
-                            elif sjdId not in available_seats.get(seat['id'], []):
-                                available_seats[seat['id']] = available_seats.get(seat['id'], [])
-                                available_seats[seat['id']].append(sjdId)
-
-                # 预约逻辑
-                for sjdId in time_slots:
-                    if sjdId in available_seats.get(booking['seat_id'], []):
-                        data = {
-                            'rq': booking['date'],
-                            'sjdId': sjdId,
-                            'zwId': booking['seat_id'],
-                        }
-                        response = requests.post(url, headers=headers, data=data, timeout=10)
-                        if response.status_code == 200:
-                            assigned_slots.append((sjdId, booking['seat_id']))
-                            success_count += 1
-                        else:
-                            all_slots_success = False
-                            failure_details.append((sjdId, booking['seat_id'], response.status_code))
-                    else:
-                        all_slots_success = False
-                        for seat_id, slots in available_seats.items():
-                            if sjdId in slots:
-                                data = {
-                                    'rq': booking['date'],
-                                    'sjdId': sjdId,
-                                    'zwId': seat_id,
-                                }
-                                response = requests.post(url, headers=headers, data=data, timeout=10)
-                                if response.status_code == 200:
-                                    assigned_slots.append((sjdId, seat_id))
-                                    success_count += 1
-                                    break
-                                else:
-                                    failure_details.append((sjdId, seat_id, response.status_code))
-                        else:
-                            floor_zones = next((key for key, seats in filtered_seats_data.items() if booking['seat_id'] in [seat['id'] for seat in seats]), None)
-                            if floor_zones:
-                                for seat in filtered_seats_data[floor_zones]:
-                                    if sjdId in available_seats.get(seat['id'], []):
-                                        data = {
-                                            'rq': booking['date'],
-                                            'sjdId': sjdId,
-                                            'zwId': seat['id'],
-                                        }
-                                        response = requests.post(url, headers=headers, data=data, timeout=10)
-                                        if response.status_code == 200:
-                                            assigned_slots.append((sjdId, seat['id']))
-                                            success_count += 1
-                                            break
-                                        else:
-                                            failure_details.append((sjdId, seat['id'], response.status_code))
-
-                # 输出结果
-                if assigned_slots:
-                    if all_slots_success:
-                        booking['result'] = "\n".join([f"成功预约 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {sjdId}" for sjdId, seat_id in assigned_slots])
-                    else:
-                        booking['result'] = "\n".join([f"成功预约 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {sjdId}" for sjdId, seat_id in assigned_slots])
-                        booking['result'] += "\n所选座位已被占用，自动更改为其他座位。"
-                    booking['result'] += f"\n成功预约 {success_count} 个时间段"
-
-                if failure_details:
-                    booking['result'] += "\n".join([f"预约失败 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {sjdId}, 错误代码: {status_code}" for sjdId, seat_id, status_code in failure_details])
-
+                # 标记预约为已处理
                 booking['processed'] = True
                 update_booking(booking)
 
-                if not send_feishu_notification(booking['feishu_webhook'], booking['result']):
-                    print("飞书通知发送失败")
+                # 发送飞书通知
+                send_feishu_notification(booking['feishu_webhook'], booking['result'])
 
             except Exception as e:
                 booking['result'] = f"预约失败: {str(e)}"
                 update_booking(booking)
-
-        delete_all_bookings()
 
     except Exception as e:
         print(f"自动预约任务失败: {str(e)}")
