@@ -5,78 +5,242 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>注册 - 抢座位系统</title>
     <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #7ed6df;
+            --success-color: #28a745;
+            --text-color: #2f3542;
+            --background-color: #f4f6f9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f6f8fc 0%, #e9ecef 100%);
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            margin: 0;
+            color: var(--text-color);
         }
+
         .register-container {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            width: 300px;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            width: 400px;
+            transition: all 0.3s ease;
         }
+
+        .register-container:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 45px rgba(0,0,0,0.15);
+        }
+
         .register-container h2 {
             text-align: center;
-            color: #333;
-            margin-bottom: 20px;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            position: relative;
+            font-weight: 300;
         }
+
+        .register-container h2::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            transform: translateX(-50%);
+        }
+
         .register-container label {
             display: block;
-            margin: 10px 0 5px;
-            font-weight: bold;
+            margin: 15px 0 8px;
+            font-weight: 600;
+            color: var(--text-color);
         }
+
         .register-container input[type="text"],
         .register-container input[type="password"] {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             margin-bottom: 20px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .register-container input[type="submit"] {
-            width: 100%;
-            padding: 10px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            transition: all 0.3s ease;
             font-size: 16px;
         }
-        .register-container input[type="submit"]:hover {
-            background-color: #218838;
+
+        .register-container input[type="text"]:focus,
+        .register-container input[type="password"]:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(74,144,226,0.1);
+            outline: none;
         }
+
+        .register-container input[type="submit"] {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+        }
+
+        .register-container input[type="submit"]:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(74,144,226,0.3);
+        }
+
         .register-container .login-link {
             text-align: center;
-            margin-top: 10px;
+            margin-top: 20px;
+            font-size: 14px;
         }
+
         .register-container .login-link a {
-            color: #007bff;
+            color: var(--primary-color);
             text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .register-container .login-link a:hover {
+            color: var(--secondary-color);
+            text-decoration: underline;
+        }
+
+        @media screen and (max-width: 480px) {
+            .register-container {
+                width: 95%;
+                padding: 20px;
+                margin: 0 10px;
+            }
+        }
+
+        /* 密码强度提示 */
+        .password-strength {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .strength-indicator {
+            flex: 1;
+            height: 5px;
+            margin: 0 2px;
+            background-color: #e0e0e0;
+            transition: background-color 0.3s ease;
+        }
+
+        .strength-weak .strength-indicator:nth-child(-n+1) {
+            background-color: #f44336;
+        }
+
+        .strength-medium .strength-indicator:nth-child(-n+2) {
+            background-color: #ff9800;
+        }
+
+        .strength-strong .strength-indicator {
+            background-color: #4CAF50;
         }
     </style>
 </head>
 <body>
     <div class="register-container">
         <h2>注册</h2>
-        <form action="/register" method="post">
+        <form action="/register" method="post" id="registerForm">
             <label for="username">用户名:</label>
-            <input type="text" id="username" name="username" required>
+            <input type="text" id="username" name="username" required minlength="4" maxlength="20">
+            
             <label for="password">密码:</label>
-            <input type="password" id="password" name="password" required>
+            <div class="password-strength" id="passwordStrength">
+                <div class="strength-indicator"></div>
+                <div class="strength-indicator"></div>
+                <div class="strength-indicator"></div>
+            </div>
+            <input type="password" id="password" name="password" required minlength="6" maxlength="20">
+            
             <label for="confirm_password">确认密码:</label>
-            <input type="password" id="confirm_password" name="confirm_password" required>
+            <input type="password" id="confirm_password" name="confirm_password" required minlength="6" maxlength="20">
+            
             <input type="submit" value="注册">
             <div class="login-link">
                 已有账号？<a href="/login">登录</a>
             </div>
         </form>
     </div>
+
+    <script>
+document.getElementById('password').addEventListener('input', function() {
+    const password = this.value;
+    const strengthContainer = document.getElementById('passwordStrength');
+    
+    // 密码强度判断规则更加复杂和严格
+    function checkPasswordStrength(pwd) {
+        let strength = 0;
+        
+        // 长度
+        if (pwd.length >= 8) strength++;
+        if (pwd.length >= 12) strength++;
+        
+        // 复杂度
+        const hasLowercase = /[a-z]/.test(pwd);
+        const hasUppercase = /[A-Z]/.test(pwd);
+        const hasNumber = /[0-9]/.test(pwd);
+        const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd);
+        
+        // 组合判断
+        if (hasLowercase && hasUppercase) strength++;
+        if (hasNumber) strength++;
+        if (hasSpecialChar) strength++;
+        
+        // 避免重复字符
+        const hasConsecutive = /(.)\1{2,}/.test(pwd);
+        if (hasConsecutive) strength--;
+        
+        return Math.min(Math.max(strength, 0), 3);
+    }
+    
+    const strengthLevel = checkPasswordStrength(password);
+    
+    // 根据强度设置不同的类
+    switch(strengthLevel) {
+        case 0:
+        case 1:
+            strengthContainer.className = 'password-strength strength-weak';
+            break;
+        case 2:
+            strengthContainer.className = 'password-strength strength-medium';
+            break;
+        case 3:
+            strengthContainer.className = 'password-strength strength-strong';
+            break;
+    }
+});
+
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+
+            if (password !== confirmPassword) {
+                e.preventDefault();
+                alert('两次输入的密码不一致');
+            }
+        });
+    </script>
 </body>
 </html>

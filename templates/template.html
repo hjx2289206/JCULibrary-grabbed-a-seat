@@ -3,106 +3,129 @@
 <head>
     <title>抢座位系统</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
     <div class="container">
         <h1>抢座位系统</h1>
 
         <div class="navbar">
-            <a href="{{ url_for('home') }}">首页</a>
-            <a href="{{ url_for('my_bookings') }}">我的预约</a>
-            {% if 'user_id' in session %}
-                <div class="user-info">
-                    <img src="{{ url_for('static', filename='avatar.png') }}" alt="User Avatar" width="30" height="30">
-                    <span>{{ session['username'] }}</span>
-                </div>
-                <a href="{{ url_for('logout') }}">登出</a>
-            {% else %}
-                <a href="{{ url_for('login') }}">登录</a>
-                <a href="{{ url_for('register') }}">注册</a>
-            {% endif %}
+            <div class="navbar-left">
+                <a href="{{ url_for('home') }}">首页</a>
+                <a href="{{ url_for('my_bookings') }}">我的预约</a>
+            </div>
+            <div class="navbar-right">
+                {% if 'user_id' in session %}
+                    <div class="user-info">
+                        <img src="{{ url_for('static', filename='avatar.png') }}" alt="User Avatar" width="30" height="30">
+                        <span>{{ session['username'] }}</span>
+                    </div>
+                    <a href="{{ url_for('logout') }}">登出</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}">登录</a>
+                    <a href="{{ url_for('register') }}">注册</a>
+                {% endif %}
+            </div>
         </div>
 
-        <div class="seat-status">
-            <div class="status-item">
-                <span class="seat-label">A01</span>
-                <span>不可预约座位</span>
-            </div>
-            <div class="status-item">
-                <span class="seat-label green-highlight">A01</span>
-                <span>可预约座位</span>
-            </div>
-        </div>
+        <div class="seat-status-legend">
+          <div class="status-item unavailable">
+              <span class="seat-label">A01</span>
+              <span>不可预约座位</span>
+          </div>
+          <div class="status-item available">
+              <span class="seat-label">A01</span>
+              <span>可预约座位</span>
+          </div>
+      </div>
 
         <div id="result"></div>
         <div class="loading"></div>
 
         <form id="bookingForm" method="post" action="/">
-            <label for="cookie">Cookie:</label>
-            <input type="text" id="cookie" name="cookie" required>
+            <div class="form-group">
+                <label for="cookie">Cookie:</label>
+                <input type="text" id="cookie" name="cookie" required>
+            </div>
 
-            <label for="feishu_webhook">飞书机器人Webhook URL (可选):</label>
-            <input type="text" id="feishu_webhook" name="feishu_webhook">
+            <div class="form-group">
+                <label for="feishu_webhook">飞书机器人Webhook URL (可选):</label>
+                <input type="text" id="feishu_webhook" name="feishu_webhook">
+            </div>
 
             <div class="seat-section">
-                {% for floor, seats in floors.items() %}
-                    <h2>{{ floor }}</h2>
-                    <div class="seat-grid">
-                        {% for seat in seats %}
-                            <label class="seat-label {{ 'green-highlight' if seat.has_data else '' }}">
-                                <input type="radio" name="seat_id" value="{{ seat.id }}" required>
-                                {{ seat.name }}
+              {% for floor, seats in floors.items() %}
+                  <h2>{{ floor }}</h2>
+                  <div class="seat-grid">
+                      {% for seat in seats %}
+                          <div class="seat-item {{ 'available' if seat.has_data else 'unavailable' }}">
+                              <input 
+                                  type="radio" 
+                                  id="seat_{{ seat.id }}" 
+                                  name="seat_id" 
+                                  value="{{ seat.id }}" 
+                                  {{ 'required' if seat.has_data else 'disabled' }}
+                              >
+                              <label for="seat_{{ seat.id }}">
+                                  {{ seat.name }}
+                                  {% if not seat.has_data %}
+                                      <span class="unavailable-text">不可预约</span>
+                                  {% endif %}
+                              </label>
+                          </div>
+                      {% endfor %}
+                  </div>
+              {% endfor %}
+          </div>
+
+            <div class="time-section">
+                <label>选择时间段:</label>
+                <div class="time-slots">
+                    {% set time_slots = [
+                        {'time': '10:00 - 12:00', 'value': '6ba3ccd77482466b82a08e480c4299ee'},
+                        {'time': '12:00 - 14:00', 'value': '58fc242d7eff41b18f1e795b048f50d4'},
+                        {'time': '14:00 - 16:00', 'value': 'da7bd7e2416246aeb4a35306d75f629b'},
+                        {'time': '16:00 - 18:00', 'value': '1ead11f7e214444986dbbf877f7de81d'},
+                        {'time': '18:00 - 22:00', 'value': 'a9596c67c7ab4f5687a0e1a5cb3ae431'}
+                    ] %}
+                    {% for slot in time_slots %}
+                        <div class="time-item">
+                            <input type="checkbox" id="time_{{ loop.index }}" name="time_slots" value="{{ slot.value }}">
+                            <label for="time_{{ loop.index }}">
+                                {{ slot.time }}
                             </label>
-                        {% endfor %}
-                    </div>
-                {% endfor %}
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
 
-            <label>选择时间段:</label>
-            <div class="time-slots">
-                <label class="time-slot">
-                    <input type="checkbox" name="time_slots" value="6ba3ccd77482466b82a08e480c4299ee">
-                    10:00 - 12:00
-                </label>
-                <label class="time-slot">
-                    <input type="checkbox" name="time_slots" value="58fc242d7eff41b18f1e795b048f50d4">
-                    12:00 - 14:00
-                </label>
-                <label class="time-slot">
-                    <input type="checkbox" name="time_slots" value="da7bd7e2416246aeb4a35306d75f629b">
-                    14:00 - 16:00
-                </label>
-                <label class="time-slot">
-                    <input type="checkbox" name="time_slots" value="1ead11f7e214444986dbbf877f7de81d">
-                    16:00 - 18:00
-                </label>
-                <label class="time-slot">
-                    <input type="checkbox" name="time_slots" value="a9596c67c7ab4f5687a0e1a5cb3ae431">
-                    18:00 - 22:00
-                </label>
+            <div class="operation-section">
+                <label>选择操作方式:</label>
+                <div class="operation-mode">
+                    {% set modes = [
+                        {'label': '明天早上6:05自动预约', 'value': 'auto_book'},
+                        {'label': '立即开始循环查询预约', 'value': 'loop_book'}
+                    ] %}
+                    {% for mode in modes %}
+                        <div class="operation-item">
+                            <input type="radio" id="mode_{{ loop.index }}" name="operation_mode" value="{{ mode.value }}" required>
+                            <label for="mode_{{ loop.index }}">
+                                {{ mode.label }}
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
 
-            <label>选择操作方式:</label>
-            <div class="operation-mode">
-                <label>
-                    <input type="radio" name="operation_mode" value="auto_book" required>
-                    明天早上6:05自动预约
-                </label>
-                <label>
-                    <input type="radio" name="operation_mode" value="loop_book" required>
-                    立即开始循环查询预约
-                </label>
-            </div>
-
-            <input type="submit" value="提交">
+            <button type="submit" class="submit-btn">提交</button>
         </form>
     </div>
 
     <script>
+        // 原有的JavaScript保持不变
         document.getElementById('bookingForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
-            // 验证至少选择了一个时间段
             const timeSlots = document.querySelectorAll('input[name="time_slots"]:checked');
             if (timeSlots.length === 0) {
                 const result = document.getElementById('result');
@@ -118,7 +141,6 @@
             const formData = new FormData(form);
             const operationMode = form.querySelector('input[name="operation_mode"]:checked').value;
 
-            // 设置加载状态
             loading.style.display = 'block';
             result.style.display = 'none';
 

@@ -1,57 +1,185 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <title>我的预约</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #7ed6df;
+            --success-color: #4CAF50;
+            --danger-color: #f44336;
+            --background-color: #f4f6f9;
+            --text-color: #2f3542;
+        }
+
+        * {
             margin: 0;
             padding: 0;
-            background-color: #f4f4f4;
+            box-sizing: border-box;
         }
+
+        body {
+            font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f6f8fc 0%, #e9ecef 100%);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
         .container {
-            width: 80%;
-            margin: 20px auto;
-            background: #fff;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 95%;
+            max-width: 1200px;
+            margin: 30px auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05);
         }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .back-link:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            position: relative;
+            font-weight: 300;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            transform: translateX(-50%);
+        }
+
         table {
             width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
+            border-collapse: separate;
+            border-spacing: 0 15px;
+            background: white;
         }
+
         th, td {
-            padding: 12px;
+            padding: 15px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            transition: all 0.3s ease;
         }
+
         th {
-            background-color: #f2f2f2;
+            background: #f8f9fa;
+            color: var(--text-color);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
+
+        tr {
+            background: #f1f3f5;
+            border-radius: 15px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
         tr:hover {
-            background-color: #f5f5f5;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(74,144,226,0.1);
         }
+
         .status-success {
-            color: #4CAF50;
+            color: var(--success-color);
+            font-weight: bold;
         }
+
         .status-cancelled {
-            color: #f44336;
+            color: var(--danger-color);
+            font-weight: bold;
         }
-        a {
-            color: #007bff;
+
+        a.cancel-link {
+            display: inline-block;
+            background: var(--danger-color);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
             text-decoration: none;
+            transition: all 0.3s ease;
         }
-        a:hover {
-            text-decoration: underline;
+
+        a.cancel-link:hover {
+            background: #d32f2f;
+            transform: scale(1.05);
+        }
+
+        /* 移动端卡片样式 */
+        .card {
+            display: none;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .card-header {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .card-body > div {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #f1f3f5;
+            padding-bottom: 10px;
+        }
+
+        .card-body > div:last-child {
+            border-bottom: none;
+        }
+
+        /* 移动端样式 */
+        @media screen and (max-width: 768px) {
+            table {
+                display: none;
+            }
+
+            .card {
+                display: block;
+            }
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <a href="{{ url_for('home') }}">返回首页</a> <!-- 添加返回首页的链接 -->
+    <a href="{{ url_for('home') }}" class="back-link">返回首页</a>
     <h1>我的预约</h1>
+    
+    <!-- 桌面端表格布局 -->
     <table>
         <thead>
             <tr>
@@ -59,8 +187,8 @@
                 <th>日期</th>
                 <th>时间段</th>
                 <th>状态</th>
-                <th>是否循环预约</th>
-                <th>查询频率（秒）</th>
+                <th>循环预约</th>
+                <th>查询频率</th>
                 <th>操作</th>
             </tr>
         </thead>
@@ -87,13 +215,63 @@
                 <td>{{ '是' if booking.loop_booking else '否' }}</td>
                 <td>{{ booking.frequency }}</td>
                 <td>
-                    <a href="{{ url_for('cancel_booking', booking_id=booking.id) }}" onclick="return confirm('确定要取消这个预约吗？')">取消</a>
+                    <a href="{{ url_for('cancel_booking', booking_id=booking.id) }}" 
+                       class="cancel-link" 
+                       onclick="return confirm('确定要取消这个预约吗？')">取消</a>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+
+    <!-- 移动端卡片布局 -->
+    <div class="card-container">
+        {% for booking in bookings %}
+        <div class="card">
+            <div class="card-header">座位号: {{ booking.seat_name }}</div>
+            <div class="card-body">
+                <div>
+                    <span>日期:</span>
+                    <span>{{ booking.date }}</span>
+                </div>
+                <div>
+                    <span>时间段:</span>
+                    <span>
+                        {% set time_slot_map = {
+                            "6ba3ccd77482466b82a08e480c4299ee": "10:00 - 12:00",
+                            "58fc242d7eff41b18f1e795b048f50d4": "12:00 - 14:00",
+                            "da7bd7e2416246aeb4a35306d75f629b": "14:00 - 16:00",
+                            "1ead11f7e214444986dbbf877f7de81d": "16:00 - 18:00",
+                            "a9596c67c7ab4f5687a0e1a5cb3ae431": "18:00 - 22:00"
+                        } %}
+                        {% for time_slot in booking.time_slots %}
+                            {{ time_slot_map[time_slot] }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </span>
+                </div>
+                <div>
+                    <span>状态:</span>
+                    <span class="{{ 'status-success' if booking.result == '预约成功' else 'status-cancelled' }}">
+                        {{ booking.result }}
+                    </span>
+                </div>
+                <div>
+                    <span>循环预约:</span>
+                    <span>{{ '是' if booking.loop_booking else '否' }}</span>
+                </div>
+                <div>
+                    <span>查询频率:</span>
+                    <span>{{ booking.frequency }}</span>
+                </div>
+                <div>
+                    <a href="{{ url_for('cancel_booking', booking_id=booking.id) }}" 
+                       class="cancel-link" 
+                       onclick="return confirm('确定要取消这个预约吗？')">取消</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 </div>
 </body>
-
 </html>

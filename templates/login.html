@@ -5,60 +5,130 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - 抢座位系统</title>
     <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #7ed6df;
+            --success-color: #28a745;
+            --text-color: #2f3542;
+            --background-color: #f4f6f9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f6f8fc 0%, #e9ecef 100%);
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            margin: 0;
+            color: var(--text-color);
         }
+
         .login-container {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            width: 300px;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            width: 400px;
+            transition: all 0.3s ease;
         }
+
+        .login-container:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 45px rgba(0,0,0,0.15);
+        }
+
         .login-container h2 {
             text-align: center;
-            color: #333;
-            margin-bottom: 20px;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            position: relative;
+            font-weight: 300;
         }
+
+        .login-container h2::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            transform: translateX(-50%);
+        }
+
         .login-container label {
             display: block;
-            margin: 10px 0 5px;
-            font-weight: bold;
+            margin: 15px 0 8px;
+            font-weight: 600;
+            color: var(--text-color);
         }
+
         .login-container input[type="text"],
         .login-container input[type="password"] {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             margin-bottom: 20px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .login-container input[type="submit"] {
-            width: 100%;
-            padding: 10px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            transition: all 0.3s ease;
             font-size: 16px;
         }
-        .login-container input[type="submit"]:hover {
-            background-color: #218838;
+
+        .login-container input[type="text"]:focus,
+        .login-container input[type="password"]:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(74,144,226,0.1);
+            outline: none;
         }
+
+        .login-container input[type="submit"] {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+        }
+
+        .login-container input[type="submit"]:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(74,144,226,0.3);
+        }
+
         .login-container .register-link {
             text-align: center;
-            margin-top: 10px;
+            margin-top: 20px;
+            font-size: 14px;
         }
+
         .login-container .register-link a {
-            color: #007bff;
+            color: var(--primary-color);
             text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .login-container .register-link a:hover {
+            color: var(--secondary-color);
+            text-decoration: underline;
+        }
+
+        @media screen and (max-width: 480px) {
+            .login-container {
+                width: 95%;
+                padding: 20px;
+                margin: 0 10px;
+            }
         }
     </style>
 </head>
