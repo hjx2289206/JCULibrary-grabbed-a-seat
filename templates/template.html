@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>抢座位系统</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
+
 <body>
     <div class="container">
         <h1>抢座位系统</h1>
@@ -13,35 +15,20 @@
             <div class="navbar-left">
                 <a href="{{ url_for('home') }}">首页</a>
                 <a href="{{ url_for('my_bookings') }}">我的预约</a>
-                <a href="{{ url_for('account') }}">账号设置</a> <!-- 新增账号设置选项 -->
+                <a href="{{ url_for('account') }}">账号设置</a>
             </div>
             <div class="navbar-right">
                 {% if 'user_id' in session %}
-                    <div class="user-info">
-                        <!-- 已移除用户头像图片 -->
-                        <span>{{ session['username'] }}</span>
-                    </div>
-                    <a href="{{ url_for('logout') }}">登出</a>
+                <div class="user-info">
+                    <span>{{ session['username'] }}</span>
+                </div>
+                <a href="{{ url_for('logout') }}">登出</a>
                 {% else %}
-                    <a href="{{ url_for('login') }}">登录</a>
-                    <a href="{{ url_for('register') }}">注册</a>
+                <a href="{{ url_for('login') }}">登录</a>
+                <a href="{{ url_for('register') }}">注册</a>
                 {% endif %}
             </div>
         </div>
-
-        <div class="seat-status-legend">
-            <div class="status-item unavailable">
-                <span class="seat-label">A01</span>
-                <span>不可预约座位</span>
-            </div>
-            <div class="status-item available">
-                <span class="seat-label">A01</span>
-                <span>可预约座位</span>
-            </div>
-        </div>
-
-        <div id="result"></div>
-        <div class="loading"></div>
 
         <form id="bookingForm" method="post" action="/">
             <div class="form-group">
@@ -49,82 +36,127 @@
                 <input type="text" id="cookie" name="cookie" required>
             </div>
 
-            <!-- 移除飞书 Webhook 输入框 -->
-            <!-- <div class="form-group">
-                <label for="feishu_webhook">飞书机器人Webhook URL (可选):</label>
-                <input type="text" id="feishu_webhook" name="feishu_webhook">
-            </div> -->
-
-            <div class="seat-section">
-                {% for floor, seats in floors.items() %}
-                <h2>{{ floor }} (Z区)</h2>
-                <div class="seat-grid">
-                    {% for seat in seats %}
-                        <div class="seat-item {{ 'available' if seat.has_data else 'unavailable' }}">
-                            <input 
-                                type="radio" 
-                                id="seat_{{ seat.id }}" 
-                                name="seat_id" 
-                                value="{{ seat.id }}" 
-                                {{ 'required' if seat.has_data else 'disabled' }}
-                            >
-                            <label for="seat_{{ seat.id }}">
-                                {{ seat.name[-3:]|replace('Z', '0') }}
-                                {% if not seat.has_data %}
-                                    <span class="unavailable-text">不可预约</span>
-                                {% endif %}
-                            </label>
-                        </div>
-                    {% endfor %}
+            <!-- 预约模式选择 -->
+            <div class="form-group">
+                <label>选择预约模式:</label>
+                <div class="operation-mode">
+                    <div class="operation-item">
+                        <input type="radio" id="mode_auto" name="operation_mode" value="auto_book" required>
+                        <label for="mode_auto">明天早上6:05自动预约</label>
+                    </div>
+                    <div class="operation-item">
+                        <input type="radio" id="mode_loop" name="operation_mode" value="loop_book" required>
+                        <label for="mode_loop">立即开始循环查询预约</label>
+                    </div>
                 </div>
-                {% endfor %}                        
             </div>
 
-            <div class="time-section">
+            <!-- 时间段选择 -->
+            <div class="form-group">
                 <label>选择时间段:</label>
                 <div class="time-slots">
-                    {% set time_slots = [
-                        {'time': '10:00 - 12:00', 'value': '6ba3ccd77482466b82a08e480c4299ee'},
-                        {'time': '12:00 - 14:00', 'value': '58fc242d7eff41b18f1e795b048f50d4'},
-                        {'time': '14:00 - 16:00', 'value': 'da7bd7e2416246aeb4a35306d75f629b'},
-                        {'time': '16:00 - 18:00', 'value': '1ead11f7e214444986dbbf877f7de81d'},
-                        {'time': '18:00 - 22:00', 'value': 'a9596c67c7ab4f5687a0e1a5cb3ae431'}
-                    ] %}
-                    {% for slot in time_slots %}
-                        <div class="time-item">
-                            <input type="checkbox" id="time_{{ loop.index }}" name="time_slots" value="{{ slot.value }}">
-                            <label for="time_{{ loop.index }}">
-                                {{ slot.time }}
-                            </label>
-                        </div>
-                    {% endfor %}
+                    <div class="time-item">
+                        <input type="checkbox" id="time_1" name="time_slots" value="6ba3ccd77482466b82a08e480c4299ee">
+                        <label for="time_1">10:00 - 12:00</label>
+                    </div>
+                    <div class="time-item">
+                        <input type="checkbox" id="time_2" name="time_slots" value="58fc242d7eff41b18f1e795b048f50d4">
+                        <label for="time_2">12:00 - 14:00</label>
+                    </div>
+                    <div class="time-item">
+                        <input type="checkbox" id="time_3" name="time_slots" value="da7bd7e2416246aeb4a35306d75f629b">
+                        <label for="time_3">14:00 - 16:00</label>
+                    </div>
+                    <div class="time-item">
+                        <input type="checkbox" id="time_4" name="time_slots" value="1ead11f7e214444986dbbf877f7de81d">
+                        <label for="time_4">16:00 - 18:00</label>
+                    </div>
+                    <div class="time-item">
+                        <input type="checkbox" id="time_5" name="time_slots" value="a9596c67c7ab4f5687a0e1a5cb3ae431">
+                        <label for="time_5">18:00 - 22:00</label>
+                    </div>
                 </div>
             </div>
 
-            <div class="operation-section">
-                <label>选择操作方式:</label>
-                <div class="operation-mode">
-                    {% set modes = [
-                        {'label': '明天早上6:05自动预约', 'value': 'auto_book'},
-                        {'label': '立即开始循环查询预约', 'value': 'loop_book'}
-                    ] %}
-                    {% for mode in modes %}
-                        <div class="operation-item">
-                            <input type="radio" id="mode_{{ loop.index }}" name="operation_mode" value="{{ mode.value }}" required>
-                            <label for="mode_{{ loop.index }}">
-                                {{ mode.label }}
-                            </label>
-                        </div>
-                    {% endfor %}
-                </div>
+            <!-- 座位信息动态加载区域 -->
+            <div class="seat-section">
+                <!-- 座位信息将通过 JavaScript 动态加载 -->
             </div>
 
             <button type="submit" class="submit-btn">提交</button>
         </form>
+
+        <div id="result"></div>
+        <div class="loading"></div>
     </div>
 
     <script>
-        document.getElementById('bookingForm').addEventListener('submit', function(e) {
+        document.addEventListener('DOMContentLoaded', function () {
+            const operationModeRadios = document.querySelectorAll('input[name="operation_mode"]');
+            const timeSlotsCheckboxes = document.querySelectorAll('input[name="time_slots"]');
+            const seatSection = document.querySelector('.seat-section');
+
+            // 监听预约模式和时间段的变化
+            operationModeRadios.forEach(radio => {
+                radio.addEventListener('change', updateSeatInfo);
+            });
+            timeSlotsCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateSeatInfo);
+            });
+
+            // 更新座位信息
+            function updateSeatInfo() {
+                const operationMode = document.querySelector('input[name="operation_mode"]:checked').value;
+                const timeSlots = Array.from(document.querySelectorAll('input[name="time_slots"]:checked')).map(cb => cb.value);
+
+                fetch('/get_seat_info', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        operation_mode: operationMode,
+                        time_slots: timeSlots
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        // 清空当前座位信息
+                        seatSection.innerHTML = '';
+
+                        // 动态生成座位信息
+                        for (const [floor, seats] of Object.entries(data.floors)) {
+                            const floorHtml = `
+                            <h2>${floor} (Z区)</h2>
+                            <div class="seat-grid">
+                                ${seats.map(seat => `
+                                    <div class="seat-item ${seat.has_data ? 'available' : 'unavailable'}">
+                                        <input 
+                                            type="radio" 
+                                            id="seat_${seat.id}" 
+                                            name="seat_id" 
+                                            value="${seat.id}" 
+                                            ${seat.has_data ? 'required' : 'disabled'}
+                                        >
+                                        <label for="seat_${seat.id}">
+                                            ${seat.name.slice(-3).replace('Z', '0')}
+                                            ${!seat.has_data ? '<span class="unavailable-text">不可预约</span>' : ''}
+                                        </label>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                            seatSection.insertAdjacentHTML('beforeend', floorHtml);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('加载座位信息失败:', error);
+                    });
+            }
+        });
+
+        // 表单提交逻辑
+        document.getElementById('bookingForm').addEventListener('submit', function (e) {
             e.preventDefault();
 
             const timeSlots = document.querySelectorAll('input[name="time_slots"]:checked');
@@ -149,20 +181,88 @@
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
-                loading.style.display = 'none';
-                result.style.display = 'block';
-                result.textContent = data.message;
-                result.className = data.message.includes('成功') ? 'success' : 'error';
-            })
-            .catch(error => {
-                loading.style.display = 'none';
-                result.style.display = 'block';
-                result.textContent = '预约请求失败，请重试';
-                result.className = 'error';
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+                    result.style.display = 'block';
+                    result.textContent = data.message;
+                    result.className = data.message.includes('成功') ? 'success' : 'error';
+                })
+                .catch(error => {
+                    loading.style.display = 'none';
+                    result.style.display = 'block';
+                    result.textContent = '预约请求失败，请重试';
+                    result.className = 'error';
+                });
+        });
+        document.addEventListener('DOMContentLoaded', function () {
+            const bookingForm = document.getElementById('bookingForm');
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close">×</span>
+            <div class="loading-spinner"></div>
+            <div class="loading-text">正在处理...</div>
+        </div>
+    `;
+            document.body.appendChild(modal);
+
+            // 关闭弹窗
+            modal.querySelector('.close').addEventListener('click', function () {
+                modal.style.display = 'none';
+            });
+
+            // 点击背景关闭弹窗
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+
+            bookingForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const timeSlots = document.querySelectorAll('input[name="time_slots"]:checked');
+                if (timeSlots.length === 0) {
+                    alert('请至少选择一个时间段');
+                    return;
+                }
+
+                // 显示弹窗
+                modal.style.display = 'flex';
+
+                const formData = new FormData(bookingForm);
+                const operationMode = bookingForm.querySelector('input[name="operation_mode"]:checked').value;
+
+                fetch('/', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        // 隐藏弹窗
+                        modal.style.display = 'none';
+
+                        // 显示结果
+                        const result = document.getElementById('result');
+                        result.style.display = 'block';
+                        result.textContent = data.message;
+                        result.className = data.message.includes('成功') ? 'success' : 'error';
+                    })
+                    .catch(error => {
+                        // 隐藏弹窗
+                        modal.style.display = 'none';
+
+                        // 显示错误信息
+                        const result = document.getElementById('result');
+                        result.style.display = 'block';
+                        result.textContent = '预约请求失败，请重试';
+                        result.className = 'error';
+                    });
             });
         });
     </script>
 </body>
+
 </html>

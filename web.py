@@ -393,6 +393,56 @@ def generate_seat_info():
 
     return floors
 
+# 座位状态
+@app.route("/get_seat_info", methods=["POST"])
+def get_seat_info():
+    if "user_id" not in session:
+        return jsonify({'message': '未登录'})
+
+    data = request.json
+    operation_mode = data.get("operation_mode")
+    time_slots = data.get("time_slots", [])
+
+    if not operation_mode:
+        return jsonify({'message': '请选择预约模式'})
+
+    # 获取所有预约记录
+    bookings = load_bookings()
+    reserved_seats = set()
+
+    # 根据预约模式过滤座位
+    for booking in bookings:
+        if operation_mode == "auto_book":
+            # 如果是 6:05 自动预约模式，过滤掉循环预约的座位
+            if not booking['loop_booking'] and any(slot in booking['time_slots'] for slot in time_slots):
+                reserved_seats.add(booking['seat_id'])
+        else:
+            # 如果是循环预约模式，不进行过滤
+            pass
+
+    # 生成座位信息
+    floors = {}
+    for floor in range(3, 6):
+        floor_name = f'{floor}F'
+        floors[floor_name] = []
+        for seat_num in range(1, 37 if floor < 5 else 39):
+            seat_id = f'{floor_name}Z{seat_num:02d}'
+            seat_real_id = seat_data.get(floor_name, {}).get('Z', {}).get(seat_num, seat_id)
+
+            # 判断座位是否可预约
+            if operation_mode == "auto_book":
+                has_data = seat_real_id not in reserved_seats  # 根据时间段动态判断
+            else:
+                has_data = True  # 循环预约模式下所有座位都可预约
+
+            floors[floor_name].append({
+                'id': seat_real_id,
+                'name': seat_id,
+                'has_data': has_data
+            })
+
+    return jsonify({'floors': floors})
+
 # 用户登录
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -663,14 +713,14 @@ def auto_book_seat_single(booking, job_id):
     try:
         print(f"开始处理预约任务: {booking['id']}")
 
-        # 确保 time_slots 在解析后是列表
+        # 确保 time_slots 是列表
         if isinstance(booking['time_slots'], str):
             time_slots = booking['time_slots'].split(',')
         elif isinstance(booking['time_slots'], list):
             time_slots = booking['time_slots']
         else:
-            raise ValueError("time_slots must be a string or list")
-        
+            raise ValueError("time_slots 必须是字符串或列表")
+
         print(f"解析后的时间段: {time_slots}")
         booking['time_slots'] = time_slots  # 保存解析后的列表
 
@@ -682,6 +732,7 @@ def auto_book_seat_single(booking, job_id):
         _, feishu_webhook, _ = user_info
         booking['feishu_webhook'] = feishu_webhook
 
+        # 设置请求头
         headers = {
             'Connection': 'keep-alive',
             'sec-ch-ua-platform': '"Android"',
@@ -699,6 +750,7 @@ def auto_book_seat_single(booking, job_id):
             'Cookie': booking['cookie']
         }
 
+        # 获取当前座位数据
         available_seats = {}
         assigned_slots = []
         failure_details = []
@@ -799,7 +851,10 @@ def auto_book_seat_single(booking, job_id):
         # 检查所有时间段是否已成功预约
         if not booking['time_slots']:
             print(f"所有时间段成功预约，停止任务 {job_id}")
-            scheduler.remove_job(job_id)
+            try:
+                scheduler.remove_job(job_id)
+            except Exception as e:
+                print(f"无法移除任务 {job_id}: {e}")
 
     except Exception as e:
         error_message = f"预约失败: {str(e)}"
@@ -812,57 +867,28 @@ def auto_book_seat_single(booking, job_id):
 
 def auto_book_seat():
     try:
+        # 加载所有未处理的预约记录
         bookings = load_bookings()
         for booking in bookings:
             if booking['processed']:
+                continue  # 如果预约已处理，跳过
+
+            # 生成唯一的 job_id
+            job_id = f"booking_{booking['id']}"
+
+            # 检查是否已经存在相同 job_id 的任务
+            if scheduler.get_job(job_id):
+                print(f"任务 {job_id} 已存在，跳过")
                 continue
-            try:
-                headers = {
-                    'Connection': 'keep-alive',
-                    'sec-ch-ua-platform': '"Android"',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 12; HBN-AL80 Build/HUAWEIHBN-AL80; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.6723.103 Mobile Safari/537.36 XWEB/1300199 MMWEBSDK/20241103 MMWEBID/7828 MicroMessenger/8.0.55.2780(0x28003737) WeChat/arm64 Weixin NetType/WIFI Language/zh_CN ABI/arm64',
-                    'Accept': '*/*',
-                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                    'Origin': 'https://jcc.educationgroup.cn',
-                    'Sec-Fetch-Site': 'same-origin',
-                    'Sec-Fetch-Mode': 'cors',
-                    'Sec-Fetch-Dest': 'empty',
-                    'Referer': 'https://jcc.educationgroup.cn/tsg/kzwWx/index',
-                    'Accept-Encoding': 'gzip, deflate, br, zstd',
-                    'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-                    'Cookie': booking['cookie']
-                }
 
-                # 确保 time_slots 是列表
-                if isinstance(booking['time_slots'], str):
-                    time_slots = booking['time_slots'].split(',')
-                elif isinstance(booking['time_slots'], list):
-                    time_slots = booking['time_slots']
-                else:
-                    raise ValueError("time_slots must be a string or list")
-
-                # 从数据库中获取用户信息
-                user_info = get_user_info(booking['user_id'])
-                if not user_info:
-                    raise ValueError("用户信息不存在")
-
-                _, feishu_webhook, _ = user_info
-                booking['feishu_webhook'] = feishu_webhook
-
-                # 调用 auto_book_seat_single 处理单个预约任务
-                auto_book_seat_single(booking, "N/A")  # 注意：这里不需要 job_id，因为我们不从调度器中移除任务
-
-                # 标记预约为已处理
-                booking['processed'] = True
-                update_booking(booking)
-
-                # 发送飞书通知
-                send_feishu_notification(booking['feishu_webhook'], booking['result'])
-
-            except Exception as e:
-                booking['result'] = f"预约失败: {str(e)}"
-                update_booking(booking)
+            # 添加调度器任务，10秒后执行
+            scheduler.add_job(
+                lambda: auto_book_seat_single(booking, job_id),
+                'date',
+                run_date=datetime.now() + timedelta(seconds=10),  # 10秒后执行
+                id=job_id
+            )
+            print(f"任务 {job_id} 已添加")
 
     except Exception as e:
         print(f"自动预约任务失败: {str(e)}")
