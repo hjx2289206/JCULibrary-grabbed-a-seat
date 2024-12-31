@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>账号设置</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #7ed6df;
+            --success-color: #4CAF50;
+            --danger-color: #f44336;
+            --background-color: #f4f6f9;
+            --text-color: #2f3542;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f6f8fc 0%, #e9ecef 100%);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1200px;
+            margin: 30px auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .back-link:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            position: relative;
+            font-weight: 300;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            transform: translateX(-50%);
+        }
+
+        .form-section {
+            background: #f1f3f5;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .form-section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(74,144,226,0.1);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(74,144,226,0.1);
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px 15px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .btn:hover {
+            background: #3a7bd5;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(74,144,226,0.2);
+        }
+
+        .select-wrapper {
+            position: relative;
+        }
+
+        .select-wrapper::after {
+            content: '▼';
+            position: absolute;
+            top: 50%;
+            right: 15px;
+            transform: translateY(-50%);
+            color: var(--text-color);
+            pointer-events: none;
+        }
+
+        select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+
+        @media screen and (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">返回首页</a>
+        <h1>账号设置</h1>
+        
+        <div class="form-section">
+            <form method="post" action="/update_password">
+                <div class="form-group">
+                    <label for="old_password">旧密码</label>
+                    <input type="password" id="old_password" name="old_password" required>
+                </div>
+                <div class="form-group">
+                    <label for="new_password">新密码</label>
+                    <input type="password" id="new_password" name="new_password" required>
+                </div>
+                <button type="submit" class="btn">修改密码</button>
+            </form>
+        </div>
+
+        <div class="form-section">
+            <form method="post" action="/update_notification_settings">
+                <div class="form-group">
+                    <label for="notification_method">通知方式</label>
+                    <div class="select-wrapper">
+                        <select id="notification_method" name="notification_method" onchange="showNotificationSettings()">
+                            <option value="none">无</option>
+                            <option value="feishu">飞书机器人</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="feishu_settings" style="display: none;">
+                    <div class="form-group">
+                        <label for="feishu_webhook">飞书 Webhook URL</label>
+                        <input type="text" id="feishu_webhook" name="feishu_webhook">
+                    </div>
+                </div>
+                <button type="submit" class="btn">保存通知设置</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showNotificationSettings() {
+            const notificationMethod = document.getElementById('notification_method');
+            const feishuSettings = document.getElementById('feishu_settings');
+            
+            feishuSettings.style.display = notificationMethod.value === 'feishu' ? 'block' : 'none';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/user_info')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('notification_method').value = data.notification_method;
+                    document.getElementById('feishu_webhook').value = data.feishu_webhook;
+                    showNotificationSettings();
+                })
+                .catch(error => console.error('Error loading user info:', error));
+        });
+    </script>
+</body>
+</html>

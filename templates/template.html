@@ -13,11 +13,12 @@
             <div class="navbar-left">
                 <a href="{{ url_for('home') }}">首页</a>
                 <a href="{{ url_for('my_bookings') }}">我的预约</a>
+                <a href="{{ url_for('account') }}">账号设置</a> <!-- 新增账号设置选项 -->
             </div>
             <div class="navbar-right">
                 {% if 'user_id' in session %}
                     <div class="user-info">
-                        <img src="{{ url_for('static', filename='avatar.png') }}" alt="User Avatar" width="30" height="30">
+                        <!-- 已移除用户头像图片 -->
                         <span>{{ session['username'] }}</span>
                     </div>
                     <a href="{{ url_for('logout') }}">登出</a>
@@ -29,15 +30,15 @@
         </div>
 
         <div class="seat-status-legend">
-          <div class="status-item unavailable">
-              <span class="seat-label">A01</span>
-              <span>不可预约座位</span>
-          </div>
-          <div class="status-item available">
-              <span class="seat-label">A01</span>
-              <span>可预约座位</span>
-          </div>
-      </div>
+            <div class="status-item unavailable">
+                <span class="seat-label">A01</span>
+                <span>不可预约座位</span>
+            </div>
+            <div class="status-item available">
+                <span class="seat-label">A01</span>
+                <span>可预约座位</span>
+            </div>
+        </div>
 
         <div id="result"></div>
         <div class="loading"></div>
@@ -48,35 +49,36 @@
                 <input type="text" id="cookie" name="cookie" required>
             </div>
 
-            <div class="form-group">
+            <!-- 移除飞书 Webhook 输入框 -->
+            <!-- <div class="form-group">
                 <label for="feishu_webhook">飞书机器人Webhook URL (可选):</label>
                 <input type="text" id="feishu_webhook" name="feishu_webhook">
-            </div>
+            </div> -->
 
             <div class="seat-section">
-              {% for floor, seats in floors.items() %}
-                  <h2>{{ floor }}</h2>
-                  <div class="seat-grid">
-                      {% for seat in seats %}
-                          <div class="seat-item {{ 'available' if seat.has_data else 'unavailable' }}">
-                              <input 
-                                  type="radio" 
-                                  id="seat_{{ seat.id }}" 
-                                  name="seat_id" 
-                                  value="{{ seat.id }}" 
-                                  {{ 'required' if seat.has_data else 'disabled' }}
-                              >
-                              <label for="seat_{{ seat.id }}">
-                                  {{ seat.name }}
-                                  {% if not seat.has_data %}
-                                      <span class="unavailable-text">不可预约</span>
-                                  {% endif %}
-                              </label>
-                          </div>
-                      {% endfor %}
-                  </div>
-              {% endfor %}
-          </div>
+                {% for floor, seats in floors.items() %}
+                <h2>{{ floor }} (Z区)</h2>
+                <div class="seat-grid">
+                    {% for seat in seats %}
+                        <div class="seat-item {{ 'available' if seat.has_data else 'unavailable' }}">
+                            <input 
+                                type="radio" 
+                                id="seat_{{ seat.id }}" 
+                                name="seat_id" 
+                                value="{{ seat.id }}" 
+                                {{ 'required' if seat.has_data else 'disabled' }}
+                            >
+                            <label for="seat_{{ seat.id }}">
+                                {{ seat.name[-3:]|replace('Z', '0') }}
+                                {% if not seat.has_data %}
+                                    <span class="unavailable-text">不可预约</span>
+                                {% endif %}
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}                        
+            </div>
 
             <div class="time-section">
                 <label>选择时间段:</label>
@@ -122,7 +124,6 @@
     </div>
 
     <script>
-        // 原有的JavaScript保持不变
         document.getElementById('bookingForm').addEventListener('submit', function(e) {
             e.preventDefault();
 

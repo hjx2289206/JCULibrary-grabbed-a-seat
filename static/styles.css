@@ -135,13 +135,13 @@ h1::after {
 .seat-item label {
   display: block;
   text-align: center;
-  padding: 12px;
+  padding: 8px;
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-  font-size: 14px;
+  font-size: 19px;         /* 调整字体大小 */
 }
 
 .seat-item.unavailable label {
@@ -173,7 +173,7 @@ h1::after {
       transparent,
       transparent 10px,
       rgba(220, 53, 69, 0.1) 10px,
-      rgba(220, 53, 69, 0.1) 20px
+      rgba(220, 53, 69, 0.1) 20px         /* 调整阴影大小 */
   );
   transform: rotate(-45deg);
   z-index: 0;

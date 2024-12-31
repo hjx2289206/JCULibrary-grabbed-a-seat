@@ -1,4 +1,5 @@
 import sqlite3
+import hashlib
 
 DB_FILE = 'bookings.db'
 
@@ -10,7 +11,9 @@ def init_db():
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL UNIQUE,
-        password TEXT NOT NULL
+        password TEXT NOT NULL,
+        feishu_webhook TEXT,
+        notification_method TEXT DEFAULT 'none'
     )
     ''')
     # 创建预约表
@@ -24,7 +27,6 @@ def init_db():
         time_slots TEXT NOT NULL,
         processed BOOLEAN NOT NULL,
         result TEXT,
-        feishu_webhook TEXT,
         loop_booking BOOLEAN DEFAULT FALSE,
         frequency INTEGER DEFAULT 10,
         last_result TEXT,
