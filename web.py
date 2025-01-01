@@ -499,14 +499,14 @@ def my_bookings():
             'cookie': row[2],
             'seat_id': row[3],
             'date': row[4],
-            'time_slots': row[5].split(','),  # 确保分割时间段ID
-            'processed': bool(row[6]),  # 确保 processed 是布尔值
+            'time_slots': row[5].split(',') if row[5] else [],  # 确保空字符串返回空列表
+            'processed': row[6] == 1,  # 仅当值为 1 时返回 True
             'result': row[7],
-            'loop_booking': bool(row[8]),  # 确保 loop_booking 是布尔值
+            'loop_booking': row[8] == 1,  # 仅当值为 1 时返回 True
             'frequency': row[9]  # 直接使用数据库中的值
         }
-        # 调试输出
-        print(f"Booking: {booking_dict}")
+        # 默认座位号
+        booking_dict['seat_name'] = "未知座位"
         # 使用 seat_data 获取座位号
         for floor, seats in seat_data.items():
             if booking_dict['seat_id'] in seats['Z'].values():
@@ -514,6 +514,8 @@ def my_bookings():
                     if seat_id == booking_dict['seat_id']:
                         booking_dict['seat_name'] = f"{floor}Z{seat_number:02d}"
                         break
+        # 调试输出
+        print(f"Booking: {booking_dict}")
         bookings.append(booking_dict)
     conn.close()
 
@@ -553,6 +555,31 @@ def cancel_booking(booking_id):
         send_feishu_notification(feishu_webhook, "预约已取消")
 
     return redirect(url_for("my_bookings"))
+
+# 删除已完成的预约
+@app.route("/delete_completed_booking/<int:booking_id>")
+def delete_completed_booking(booking_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user_id = session["user_id"]
+
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+
+    # 检查预约是否已完成
+    cursor.execute("SELECT processed FROM bookings WHERE id = ? AND user_id = ?", (booking_id, user_id))
+    result = cursor.fetchone()
+
+    if result and result[0]:  # 如果 processed 为 True
+        # 删除预约记录
+        cursor.execute("DELETE FROM bookings WHERE id = ? AND user_id = ?", (booking_id, user_id))
+        conn.commit()
+        conn.close()
+        return redirect(url_for("my_bookings"))
+    else:
+        conn.close()
+        return "无法删除未完成的预约", 400
 
 # 首页（抢座位）
 @app.route("/", methods=["GET", "POST"])
@@ -855,6 +882,7 @@ def auto_book_seat_single(booking, job_id):
                 scheduler.remove_job(job_id)
             except Exception as e:
                 print(f"无法移除任务 {job_id}: {e}")
+            update_booking(booking)  # 更新数据库中的状态
 
     except Exception as e:
         error_message = f"预约失败: {str(e)}"
@@ -862,6 +890,8 @@ def auto_book_seat_single(booking, job_id):
         booking['result'] = error_message
         booking['processed'] = True
         booking['last_result'] = error_message  # 更新最后消息状态
+        if 'time_slots' not in booking:  # 确保 time_slots 存在
+            booking['time_slots'] = []
         update_booking(booking)
         send_feishu_notification(booking['feishu_webhook'], booking['result'])  # 发送飞书通知
 
@@ -937,9 +967,27 @@ def get_seat_data():
     except Exception as e:
         print(f"Error retrieving seat data: {str(e)}")
 
+# 清除已完成预约的记录
+def clear_completed_bookings():
+    """
+    清除所有时间段都预约成功的记录（time_slots 为空的记录）
+    """
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    try:
+        # 删除 time_slots 为空的记录
+        cursor.execute('DELETE FROM bookings WHERE time_slots = ""')
+        conn.commit()
+        print(f"已清除 {cursor.rowcount} 条已完成预约的记录")
+    except sqlite3.Error as e:
+        print(f"清除预约记录时出错: {e}")
+    finally:
+        conn.close()
+
 scheduler = BackgroundScheduler()
 scheduler.add_job(auto_book_seat, 'cron', hour=6, minute=2)
 scheduler.add_job(get_seat_data, 'interval', minutes=5)  # 每5分钟获取一次座位数据
+scheduler.add_job(clear_completed_bookings, 'cron', hour=18, minute=30)  # 每天清除已完成预约的记录
 scheduler.start()
 
 if __name__ == "__main__":

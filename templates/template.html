@@ -87,16 +87,28 @@
         </form>
 
         <div id="result"></div>
-        <div class="loading"></div>
+    </div>
+
+    <!-- 弹窗 -->
+    <div class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <div class="loading-spinner"></div>
+            <div class="loading-text">正在处理...</div>
+        </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            const bookingForm = document.getElementById('bookingForm');
+            const modal = document.querySelector('.modal');
+            const closeBtn = modal.querySelector('.close');
+
+            // 监听预约模式和时间段的变化
             const operationModeRadios = document.querySelectorAll('input[name="operation_mode"]');
             const timeSlotsCheckboxes = document.querySelectorAll('input[name="time_slots"]');
             const seatSection = document.querySelector('.seat-section');
 
-            // 监听预约模式和时间段的变化
             operationModeRadios.forEach(radio => {
                 radio.addEventListener('change', updateSeatInfo);
             });
@@ -121,31 +133,28 @@
                 })
                     .then(response => response.json())
                     .then(data => {
-                        // 清空当前座位信息
                         seatSection.innerHTML = '';
-
-                        // 动态生成座位信息
                         for (const [floor, seats] of Object.entries(data.floors)) {
                             const floorHtml = `
-                            <h2>${floor} (Z区)</h2>
-                            <div class="seat-grid">
-                                ${seats.map(seat => `
-                                    <div class="seat-item ${seat.has_data ? 'available' : 'unavailable'}">
-                                        <input 
-                                            type="radio" 
-                                            id="seat_${seat.id}" 
-                                            name="seat_id" 
-                                            value="${seat.id}" 
-                                            ${seat.has_data ? 'required' : 'disabled'}
-                                        >
-                                        <label for="seat_${seat.id}">
-                                            ${seat.name.slice(-3).replace('Z', '0')}
-                                            ${!seat.has_data ? '<span class="unavailable-text">不可预约</span>' : ''}
-                                        </label>
-                                    </div>
-                                `).join('')}
+                    <h2>${floor} (Z区)</h2>
+                    <div class="seat-grid">
+                        ${seats.map(seat => `
+                            <div class="seat-item ${seat.has_data ? 'available' : 'unavailable'}">
+                                <input 
+                                    type="radio" 
+                                    id="seat_${seat.id}" 
+                                    name="seat_id" 
+                                    value="${seat.id}" 
+                                    ${seat.has_data ? 'required' : 'disabled'}
+                                >
+                                <label for="seat_${seat.id}">
+                                    ${seat.name.slice(-3).replace('Z', '0')}
+                                    ${!seat.has_data ? '<span class="unavailable-text">不可预约</span>' : ''}
+                                </label>
                             </div>
-                        `;
+                        `).join('')}
+                    </div>
+                `;
                             seatSection.insertAdjacentHTML('beforeend', floorHtml);
                         }
                     })
@@ -153,63 +162,9 @@
                         console.error('加载座位信息失败:', error);
                     });
             }
-        });
-
-        // 表单提交逻辑
-        document.getElementById('bookingForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            const timeSlots = document.querySelectorAll('input[name="time_slots"]:checked');
-            if (timeSlots.length === 0) {
-                const result = document.getElementById('result');
-                result.style.display = 'block';
-                result.textContent = '请至少选择一个时间段';
-                result.className = 'error';
-                return;
-            }
-
-            const result = document.getElementById('result');
-            const loading = document.querySelector('.loading');
-            const form = this;
-            const formData = new FormData(form);
-            const operationMode = form.querySelector('input[name="operation_mode"]:checked').value;
-
-            loading.style.display = 'block';
-            result.style.display = 'none';
-
-            fetch('/', {
-                method: 'POST',
-                body: formData
-            })
-                .then(response => response.json())
-                .then(data => {
-                    loading.style.display = 'none';
-                    result.style.display = 'block';
-                    result.textContent = data.message;
-                    result.className = data.message.includes('成功') ? 'success' : 'error';
-                })
-                .catch(error => {
-                    loading.style.display = 'none';
-                    result.style.display = 'block';
-                    result.textContent = '预约请求失败，请重试';
-                    result.className = 'error';
-                });
-        });
-        document.addEventListener('DOMContentLoaded', function () {
-            const bookingForm = document.getElementById('bookingForm');
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.innerHTML = `
-        <div class="modal-content">
-            <span class="close">×</span>
-            <div class="loading-spinner"></div>
-            <div class="loading-text">正在处理...</div>
-        </div>
-    `;
-            document.body.appendChild(modal);
 
             // 关闭弹窗
-            modal.querySelector('.close').addEventListener('click', function () {
+            closeBtn.addEventListener('click', function () {
                 modal.style.display = 'none';
             });
 
@@ -220,12 +175,19 @@
                 }
             });
 
+            // 表单提交逻辑
             bookingForm.addEventListener('submit', function (e) {
                 e.preventDefault();
 
                 const timeSlots = document.querySelectorAll('input[name="time_slots"]:checked');
                 if (timeSlots.length === 0) {
                     alert('请至少选择一个时间段');
+                    return;
+                }
+
+                const seatId = document.querySelector('input[name="seat_id"]:checked');
+                if (!seatId) {
+                    alert('请选择一个座位');
                     return;
                 }
 
