@@ -4,6 +4,7 @@
 <head>
     <title>我的预约</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <style>
         :root {
             --primary-color: #4a90e2;
@@ -304,6 +305,7 @@
                         <td>{{ booking.date }}</td>
                         <td>
                             {% set time_slot_map = {
+                            "4df8c3dc857e4a39ab11142e132daccf": "07:00 - 10:00",
                             "6ba3ccd77482466b82a08e480c4299ee": "10:00 - 12:00",
                             "58fc242d7eff41b18f1e795b048f50d4": "12:00 - 14:00",
                             "da7bd7e2416246aeb4a35306d75f629b": "14:00 - 16:00",
@@ -313,7 +315,7 @@
                             {% for time_slot in booking.time_slots %}
                             {{ time_slot_map[time_slot] }}{% if not loop.last %}, {% endif %}
                             {% endfor %}
-                        </td>
+                        </td>                        
                         <td class="{{ 'status-success' if booking.result == '预约成功' else 'status-cancelled' }}">
                             {{ booking.result }}
                         </td>

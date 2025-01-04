@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh">
 
 <head>
+    <meta charset="UTF-8">
     <title>抢座位系统</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
@@ -56,6 +58,10 @@
                 <label>选择时间段:</label>
                 <div class="time-slots">
                     <div class="time-item">
+                        <input type="checkbox" id="time_0" name="time_slots" value="4df8c3dc857e4a39ab11142e132daccf">
+                        <label for="time_0">07:00 - 10:00</label>
+                    </div>
+                    <div class="time-item">
                         <input type="checkbox" id="time_1" name="time_slots" value="6ba3ccd77482466b82a08e480c4299ee">
                         <label for="time_1">10:00 - 12:00</label>
                     </div>
@@ -78,6 +84,7 @@
                 </div>
             </div>
 
+
             <!-- 座位信息动态加载区域 -->
             <div class="seat-section">
                 <!-- 座位信息将通过 JavaScript 动态加载 -->
@@ -92,8 +99,13 @@
     <!-- 弹窗 -->
     <div class="modal">
         <div class="modal-content">
-            <span class="close">×</span>
-            <div class="loading-spinner"></div>
+            <div class="box">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
             <div class="loading-text">正在处理...</div>
         </div>
     </div>
@@ -102,7 +114,6 @@
         document.addEventListener('DOMContentLoaded', function () {
             const bookingForm = document.getElementById('bookingForm');
             const modal = document.querySelector('.modal');
-            const closeBtn = modal.querySelector('.close');
 
             // 监听预约模式和时间段的变化
             const operationModeRadios = document.querySelectorAll('input[name="operation_mode"]');
@@ -136,25 +147,25 @@
                         seatSection.innerHTML = '';
                         for (const [floor, seats] of Object.entries(data.floors)) {
                             const floorHtml = `
-                    <h2>${floor} (Z区)</h2>
-                    <div class="seat-grid">
-                        ${seats.map(seat => `
-                            <div class="seat-item ${seat.has_data ? 'available' : 'unavailable'}">
-                                <input 
-                                    type="radio" 
-                                    id="seat_${seat.id}" 
-                                    name="seat_id" 
-                                    value="${seat.id}" 
-                                    ${seat.has_data ? 'required' : 'disabled'}
-                                >
-                                <label for="seat_${seat.id}">
-                                    ${seat.name.slice(-3).replace('Z', '0')}
-                                    ${!seat.has_data ? '<span class="unavailable-text">不可预约</span>' : ''}
-                                </label>
+                            <h2>${floor} (Z区)</h2>
+                            <div class="seat-grid">
+                                ${seats.map(seat => `
+                                    <div class="seat-item ${seat.has_data ? 'available' : 'unavailable'}">
+                                        <input 
+                                            type="radio" 
+                                            id="seat_${seat.id}" 
+                                            name="seat_id" 
+                                            value="${seat.id}" 
+                                            ${seat.has_data ? 'required' : 'disabled'}
+                                        >
+                                        <label for="seat_${seat.id}">
+                                            ${seat.name.slice(-3).replace('Z', '0')}
+                                            ${!seat.has_data ? '<span class="unavailable-text">不可预约</span>' : ''}
+                                        </label>
+                                    </div>
+                                `).join('')}
                             </div>
-                        `).join('')}
-                    </div>
-                `;
+                        `;
                             seatSection.insertAdjacentHTML('beforeend', floorHtml);
                         }
                     })
@@ -162,18 +173,6 @@
                         console.error('加载座位信息失败:', error);
                     });
             }
-
-            // 关闭弹窗
-            closeBtn.addEventListener('click', function () {
-                modal.style.display = 'none';
-            });
-
-            // 点击背景关闭弹窗
-            modal.addEventListener('click', function (e) {
-                if (e.target === modal) {
-                    modal.style.display = 'none';
-                }
-            });
 
             // 表单提交逻辑
             bookingForm.addEventListener('submit', function (e) {
