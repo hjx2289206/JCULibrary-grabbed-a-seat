@@ -131,12 +131,31 @@
                 margin: 0 10px;
             }
         }
+
+        /* 视频容器样式 */
+        .video-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            z-index: 1000;
+            display: none; /* 默认隐藏 */
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: transparent;
+        }
     </style>
 </head>
 <body>
     <div class="login-container">
         <h2>登录</h2>
-        <form action="/login" method="post">
+        <form id="login-form" action="/login" method="post">
             <label for="username">用户名:</label>
             <input type="text" id="username" name="username" required>
             <label for="password">密码:</label>
@@ -147,5 +166,46 @@
             </div>
         </form>
     </div>
+
+    <!-- 视频转场容器 -->
+    <div class="video-container">
+        <video id="transition-video" src="{{ url_for('static', filename='t1ksu-vzgpt.webm') }}" autoplay muted></video>
+    </div>
+
+    <script>
+        // 登录表单提交事件
+        document.getElementById('login-form').addEventListener('submit', function (event) {
+            event.preventDefault(); // 阻止表单默认提交
+
+            // 显示视频容器并播放视频
+            const videoContainer = document.querySelector('.video-container');
+            const video = document.getElementById('transition-video');
+            videoContainer.style.display = 'block';
+            video.play();
+
+            // 监听视频播放状态
+            video.addEventListener('timeupdate', function () {
+                // 在视频结束前1秒提交表单
+                if (video.currentTime >= video.duration - 1) {
+                    document.getElementById('login-form').submit(); // 提交表单
+                }
+            });
+
+            // 提交表单数据
+            const formData = new FormData(this);
+            fetch("/login", {
+                method: "POST",
+                body: formData,
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("登录失败");
+                }
+            })
+            .catch(error => {
+                alert(error.message);
+            });
+        });
+    </script>
 </body>
 </html>

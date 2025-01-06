@@ -40,7 +40,7 @@
 
             <!-- 预约模式选择 -->
             <div class="form-group">
-                <label>选择预约模式:</label>
+                <label>选择模式:</label>
                 <div class="operation-mode">
                     <div class="operation-item">
                         <input type="radio" id="mode_auto" name="operation_mode" value="auto_book" required>
@@ -49,6 +49,10 @@
                     <div class="operation-item">
                         <input type="radio" id="mode_loop" name="operation_mode" value="loop_book" required>
                         <label for="mode_loop">立即开始循环查询预约</label>
+                    </div>
+                    <div class="operation-item">
+                        <input type="radio" id="mode_keep_alive" name="operation_mode" value="keep_alive" required>
+                        <label for="mode_keep_alive">座位保活(每20分钟取消重约)</label>
                     </div>
                 </div>
             </div>
@@ -114,11 +118,11 @@
         document.addEventListener('DOMContentLoaded', function () {
             const bookingForm = document.getElementById('bookingForm');
             const modal = document.querySelector('.modal');
+            const seatSection = document.querySelector('.seat-section');
 
             // 监听预约模式和时间段的变化
             const operationModeRadios = document.querySelectorAll('input[name="operation_mode"]');
             const timeSlotsCheckboxes = document.querySelectorAll('input[name="time_slots"]');
-            const seatSection = document.querySelector('.seat-section');
 
             operationModeRadios.forEach(radio => {
                 radio.addEventListener('change', updateSeatInfo);
@@ -147,25 +151,25 @@
                         seatSection.innerHTML = '';
                         for (const [floor, seats] of Object.entries(data.floors)) {
                             const floorHtml = `
-                            <h2>${floor} (Z区)</h2>
-                            <div class="seat-grid">
-                                ${seats.map(seat => `
-                                    <div class="seat-item ${seat.has_data ? 'available' : 'unavailable'}">
-                                        <input 
-                                            type="radio" 
-                                            id="seat_${seat.id}" 
-                                            name="seat_id" 
-                                            value="${seat.id}" 
-                                            ${seat.has_data ? 'required' : 'disabled'}
-                                        >
-                                        <label for="seat_${seat.id}">
-                                            ${seat.name.slice(-3).replace('Z', '0')}
-                                            ${!seat.has_data ? '<span class="unavailable-text">不可预约</span>' : ''}
-                                        </label>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        `;
+                        <h2>${floor} (Z区)</h2>
+                        <div class="seat-grid">
+                            ${seats.map(seat => `
+                                <div class="seat-item ${seat.has_data ? 'available' : 'unavailable'}">
+                                    <input 
+                                        type="radio" 
+                                        id="seat_${seat.id}" 
+                                        name="seat_id" 
+                                        value="${seat.id}" 
+                                        ${seat.has_data ? 'required' : 'disabled'}
+                                    >
+                                    <label for="seat_${seat.id}">
+                                        ${seat.name.slice(-3).replace('Z', '0')}
+                                        ${!seat.has_data ? '<span class="unavailable-text">不可预约</span>' : ''}
+                                    </label>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
                             seatSection.insertAdjacentHTML('beforeend', floorHtml);
                         }
                     })
@@ -194,7 +198,6 @@
                 modal.style.display = 'flex';
 
                 const formData = new FormData(bookingForm);
-                const operationMode = bookingForm.querySelector('input[name="operation_mode"]:checked').value;
 
                 fetch('/', {
                     method: 'POST',
@@ -218,7 +221,7 @@
                         // 显示错误信息
                         const result = document.getElementById('result');
                         result.style.display = 'block';
-                        result.textContent = '预约请求失败，请重试';
+                        result.textContent = '请求失败，请重试';
                         result.className = 'error';
                     });
             });

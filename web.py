@@ -126,8 +126,8 @@ def save_booking(booking):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute('''
-    INSERT INTO bookings (user_id, cookie, seat_id, date, time_slots, processed, result, loop_booking, frequency)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO bookings (user_id, cookie, seat_id, date, time_slots, processed, result, loop_booking, frequency, last_result)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         booking['user_id'], 
         booking['cookie'], 
@@ -135,9 +135,10 @@ def save_booking(booking):
         booking['date'], 
         booking['time_slots'], 
         booking['processed'], 
-        booking['result'], 
-        booking['loop_booking'], 
-        booking.get('frequency', None)  # 使用频率值，确保在 auto_book 模式下为 None
+        booking.get('result', ''),  # 使用 result 字段存储任务类型标识
+        booking.get('loop_booking', False),  # 默认值为 False
+        booking.get('frequency', None),  # 使用频率值，确保在 auto_book 模式下为 None
+        booking.get('last_result', '')  # 使用 last_result 字段存储任务类型标识
     ))
     booking_id = cursor.lastrowid
     conn.commit()
@@ -167,10 +168,10 @@ def update_booking(booking):
         booking['date'], 
         ','.join(booking['time_slots']),  # 确保 time_slots 格式正确
         booking['processed'], 
-        booking['result'], 
-        booking['loop_booking'], 
-        booking['frequency'], 
-        booking['last_result'],  # 更新 last_result 字段
+        booking.get('result', ''),  # 使用 result 字段存储任务类型标识
+        booking.get('loop_booking', False),  # 默认值为 False
+        booking.get('frequency', None),  # 使用频率值，确保在 auto_book 模式下为 None
+        booking.get('last_result', ''),  # 使用 last_result 字段存储任务类型标识
         booking['id']
     ))
     conn.commit()
@@ -185,7 +186,7 @@ def load_bookings():
     bookings = []
     for row in rows:
         print(f"Raw row data: {row}")  # 调试输出
-        bookings.append({
+        booking = {
             'id': row[0],
             'user_id': row[1],
             'cookie': row[2],
@@ -196,10 +197,12 @@ def load_bookings():
             'result': row[7],
             'loop_booking': bool(row[8]),  # 确保 loop_booking 是布尔值
             'frequency': row[9],  # 直接使用数据库中的值
-            'last_result': row[10]  # 添加获取 last_result
-        })
+            'last_result': row[10],  # 添加获取 last_result
+            'is_keep_alive': row[7] == 'keep_alive' or row[10] == 'keep_alive'  # 判断是否为保活任务
+        }
+        bookings.append(booking)
         # 调试输出
-        print(f"Loaded booking ID: {row[0]}, frequency: {row[9]}")
+        print(f"Loaded booking ID: {row[0]}, frequency: {row[9]}, is_keep_alive: {booking['is_keep_alive']}")
     conn.close()
     return bookings
 
@@ -472,7 +475,7 @@ def login():
 
         if user:
             session["user_id"] = user[0]
-            return redirect(url_for("home"))
+            return redirect(url_for("home"))  # 登录成功后跳转到首页
         else:
             return "用户名或密码错误"
     return render_template("login.html")
@@ -488,7 +491,7 @@ def logout():
 def my_bookings():
     if "user_id" not in session:
         return redirect(url_for("login"))
-    
+
     user_id = session["user_id"]
 
     conn = sqlite3.connect(DB_FILE)
@@ -506,10 +509,20 @@ def my_bookings():
             'date': row[4],
             'time_slots': row[5].split(',') if row[5] else [],  # 确保空字符串返回空列表
             'processed': row[6] == 1,  # 仅当值为 1 时返回 True
-            'result': row[7],
+            'result': row[7],  # 原始结果
             'loop_booking': row[8] == 1,  # 仅当值为 1 时返回 True
             'frequency': row[9]  # 直接使用数据库中的值
         }
+
+        # 动态设置 result 字段
+        if booking_dict['loop_booking']:
+            if booking_dict['frequency'] == 1200:  # 保活任务频率为 1200 秒（20 分钟）
+                booking_dict['result'] = "保活中，每 20 分钟执行一次"
+            else:  # 其他频率为循环预约
+                booking_dict['result'] = "正在循环预约，每 10 秒查询一次"
+        else:  # 非循环任务为自动预约
+            booking_dict['result'] = "预约记录已保存，将在明早 6:05 自动执行"
+
         # 默认座位号
         booking_dict['seat_name'] = "未知座位"
         # 使用 seat_data 获取座位号
@@ -519,6 +532,7 @@ def my_bookings():
                     if seat_id == booking_dict['seat_id']:
                         booking_dict['seat_name'] = f"{floor}Z{seat_number:02d}"
                         break
+
         # 调试输出
         print(f"Booking: {booking_dict}")
         bookings.append(booking_dict)
@@ -627,9 +641,12 @@ def home():
                     date = now.strftime('%Y-%m-%d')
                 frequency = None  # 自动预约模式下没有频率
             else:
-                # 循环预约使用今天的日期
+                # 循环预约或保活任务使用今天的日期
                 date = now.strftime('%Y-%m-%d')
-                frequency = 10  # 确保在循环预约模式下频率为10
+                if operation_mode == "keep_alive":
+                    frequency = 1200  # 保活任务间隔时间为20分钟（1200秒）
+                else:
+                    frequency = 10  # 循环预约模式下频率为10秒
 
             # 转换时间段 ID 列表为字符串
             time_slots_str = ','.join(time_slots)
@@ -642,9 +659,10 @@ def home():
                 'time_slots': time_slots_str,
                 'processed': False,
                 'result': "预约记录已保存，待自动执行" if operation_mode == "auto_book" else None,
-                'loop_booking': operation_mode != "auto_book",
+                'loop_booking': operation_mode != "auto_book",  # 保活任务和循环预约均为循环任务
                 'frequency': frequency,
-                'feishu_webhook': feishu_webhook  # 确保在 booking 中存储 feishu_webhook
+                'feishu_webhook': feishu_webhook,  # 确保在 booking 中存储 feishu_webhook
+                'is_keep_alive': operation_mode == "keep_alive"  # 标识是否为保活任务
             }
 
             booking_id = save_booking(booking)
@@ -660,22 +678,29 @@ def home():
                 return jsonify({'message': '预约记录已保存，将在明早6:05自动执行'})
             else:
                 booking['id'] = booking_id
-                print(f"循环预约记录已保存，ID: {booking_id}")
+                print(f"任务记录已保存，ID: {booking_id}")
 
                 # 创建一个唯一的 job_id
                 job_id = f"booking_{booking_id}"
 
-                # 添加调度器任务，定期执行预约任务
-                scheduler.add_job(lambda: auto_book_seat_single(booking, job_id), 'interval', seconds=frequency, id=job_id)
+                # 根据操作模式启动任务
+                if operation_mode == "loop_book":
+                    # 循环预约任务
+                    scheduler.add_job(lambda: auto_book_seat_single(booking, job_id), 'interval', seconds=frequency, id=job_id)
+                    message = "预约信息已保存，将每10秒查询一次座位信息"
+                elif operation_mode == "keep_alive":
+                    # 保活任务
+                    scheduler.add_job(lambda: cancel_and_rebook(booking, time_slots[0]), 'interval', seconds=frequency, id=job_id)
+                    message = "座位保活功能已启用，每隔20分钟执行一次"
 
                 # 调试输出
-                print(f"调用飞书通知，Webhook: {feishu_webhook}, Message: 预约信息已保存，将每10秒查询一次座位信息")
+                print(f"调用飞书通知，Webhook: {feishu_webhook}, Message: {message}")
 
-                if not send_feishu_notification(feishu_webhook, "预约信息已保存，将每10秒查询一次座位信息"):
+                if not send_feishu_notification(feishu_webhook, message):
                     return jsonify({'message': '飞书通知发送失败'})
 
-                print(f"循环预约任务已启动，Job ID: {job_id}")
-                return jsonify({'message': '预约信息已保存，将每10秒查询一次座位信息'})
+                print(f"任务已启动，Job ID: {job_id}")
+                return jsonify({'message': message})
         except Exception as e:
             print(f"处理预约请求时出错: {str(e)}")
             return jsonify({'message': f'预约失败: {str(e)}'})
@@ -933,6 +958,76 @@ def auto_book_seat():
 
     except Exception as e:
         print(f"自动预约任务失败: {str(e)}")
+
+# 座位保活功能
+def cancel_and_rebook(booking, time_slot):
+    """
+    座位保活功能：取消当前预约并重新预约
+    :param booking: 预约记录（包含用户 ID、cookie、座位 ID、日期、时间段等）
+    :param time_slot: 时间段 ID
+    """
+    user_id = booking['user_id']
+    cookie = booking['cookie']
+    seat_id = booking['seat_id']
+    date = booking['date']
+
+    # 1. 取消当前预约
+    cancel_url = "https://jcc.educationgroup.cn/tsg/kzwWx/cancel"
+    cancel_headers = {
+        'Connection': 'keep-alive',
+        'Content-Length': '51',
+        'sec-ch-ua-platform': '"Android"',
+        'X-Requested-With': 'XMLHttpRequest',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 12; HBN-AL80 Build/HUAWEIHBN-AL80; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.6723.103 Mobile Safari/537.36 XWEB/1300259 MMWEBSDK/20241103 MMWEBID/7828 MicroMessenger/8.0.55.2780(0x2800373B) WeChat/arm64 Weixin NetType/4G Language/zh_CN ABI/arm64',
+        'Accept': '*/*',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Origin': 'https://jcc.educationgroup.cn',
+        'Sec-Fetch-Site': 'same-origin',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Dest': 'empty',
+        'Referer': 'https://jcc.educationgroup.cn/tsg/kzwWx/index',
+        'Accept-Encoding': 'gzip, deflate, br, zstd',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Cookie': cookie
+    }
+    cancel_data = {
+        'rq': date,  # 预约日期
+        'sjds': time_slot  # 时间段 ID
+    }
+
+    try:
+        # 发送取消预约请求
+        cancel_response = requests.post(cancel_url, headers=cancel_headers, data=cancel_data, timeout=10)
+        if cancel_response.status_code != 200:
+            print(f"取消预约失败: {cancel_response.status_code}, {cancel_response.text}")
+            return False
+
+        print(f"取消预约成功: 日期={date}, 时间段={time_slot}")
+
+        # 2. 短暂等待，避免频繁请求
+        time.sleep(1)  # 等待 1 秒
+
+        # 3. 重新预约
+        book_url = "https://jcc.educationgroup.cn/tsg/kzwWx/save"
+        book_headers = cancel_headers  # 复用取消预约的请求头
+        book_data = {
+            'rq': date,  # 预约日期
+            'sjdId': time_slot,  # 时间段 ID
+            'zwId': seat_id  # 座位 ID
+        }
+
+        # 发送重新预约请求
+        book_response = requests.post(book_url, headers=book_headers, data=book_data, timeout=10)
+        if book_response.status_code == 200:
+            print(f"重新预约成功: 座位={seat_id}, 日期={date}, 时间段={time_slot}")
+            return True
+        else:
+            print(f"重新预约失败: {book_response.status_code}, {book_response.text}")
+            return False
+
+    except Exception as e:
+        print(f"保活任务异常: {str(e)}")
+        return False
 
 # 定时获取座位数据
 def get_seat_data():

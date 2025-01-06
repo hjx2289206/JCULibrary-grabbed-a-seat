@@ -14,7 +14,7 @@
 }
 
 body {
-  font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+  font-family: "PingFang SC", "Helvetica Neue", Arial, sans-serif;
   background: linear-gradient(135deg, #f6f8fc 0%, #e9ecef 100%);
   color: var(--text-color);
   line-height: 1.6;
@@ -27,7 +27,7 @@ body {
   background: white;
   border-radius: 20px;
   padding: 40px;
-  box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05);
 }
 
 h1 {
@@ -39,13 +39,17 @@ h1 {
 }
 
 h1::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -10px;
   left: 50%;
   width: 100px;
   height: 3px;
-  background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+  background: linear-gradient(
+    to right,
+    var(--primary-color),
+    var(--secondary-color)
+  );
   transform: translateX(-50%);
 }
 
@@ -141,7 +145,7 @@ h1::after {
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-  font-size: 19px;         /* 调整字体大小 */
+  font-size: 19px; /* 调整字体大小 */
 }
 
 .seat-item.unavailable label {
@@ -162,18 +166,18 @@ h1::after {
 }
 
 .seat-item.unavailable label::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -50%;
   left: -50%;
   width: 200%;
   height: 200%;
   background: repeating-linear-gradient(
-      45deg,
-      transparent,
-      transparent 10px,
-      rgba(220, 53, 69, 0.1) 10px,
-      rgba(220, 53, 69, 0.1) 20px         /* 调整阴影大小 */
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(220, 53, 69, 0.1) 10px,
+    rgba(220, 53, 69, 0.1) 20px /* 调整阴影大小 */
   );
   transform: rotate(-45deg);
   z-index: 0;
@@ -186,13 +190,13 @@ h1::after {
 
 .seat-item.available label:hover {
   transform: scale(1.05);
-  box-shadow: 0 10px 20px rgba(72,219,251,0.2);
+  box-shadow: 0 10px 20px rgba(72, 219, 251, 0.2);
 }
 
 .seat-item input[type="radio"]:checked + label {
   background: linear-gradient(to right, #6a11cb, #2575fc);
   transform: scale(1.05);
-  box-shadow: 0 10px 20px rgba(106,17,203,0.3);
+  box-shadow: 0 10px 20px rgba(106, 17, 203, 0.3);
 }
 
 .time-slots {
@@ -227,7 +231,7 @@ h1::after {
   background: linear-gradient(135deg, #48dbfb, #1abc9c);
   color: white;
   transform: scale(1.05);
-  box-shadow: 0 10px 20px rgba(72,219,251,0.2);
+  box-shadow: 0 10px 20px rgba(72, 219, 251, 0.2);
 }
 
 .time-item label:hover {
@@ -267,7 +271,7 @@ h1::after {
   background: linear-gradient(135deg, #ff6b6b, #ff9a9a);
   color: white;
   transform: scale(1.05);
-  box-shadow: 0 10px 20px rgba(255,107,107,0.2);
+  box-shadow: 0 10px 20px rgba(255, 107, 107, 0.2);
 }
 
 .operation-item label:hover {
@@ -295,14 +299,18 @@ h1::after {
 
 .form-group input[type="text"]:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(74,144,226,0.1);
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
 }
 
 .submit-btn {
   width: 100%;
   max-width: 200px;
   padding: 15px;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  background: linear-gradient(
+    135deg,
+    var(--primary-color),
+    var(--secondary-color)
+  );
   color: white;
   border: none;
   border-radius: 15px;
@@ -312,23 +320,23 @@ h1::after {
   letter-spacing: 2px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 5px 15px rgba(74,144,226,0.2);
+  box-shadow: 0 5px 15px rgba(74, 144, 226, 0.2);
   margin: 0 auto;
   display: block;
 }
 
 .submit-btn::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
   background: linear-gradient(
-      120deg, 
-      transparent, 
-      rgba(255,255,255,0.3), 
-      transparent
+    120deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
   );
   transition: all 0.6s ease;
 }
@@ -339,12 +347,12 @@ h1::after {
 
 .submit-btn:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(74,144,226,0.3);
+  box-shadow: 0 10px 20px rgba(74, 144, 226, 0.3);
 }
 
 .submit-btn:active {
   transform: translateY(2px);
-  box-shadow: 0 5px 10px rgba(74,144,226,0.2);
+  box-shadow: 0 5px 10px rgba(74, 144, 226, 0.2);
 }
 
 #result {
@@ -356,12 +364,12 @@ h1::after {
 
 .success {
   background: rgba(76, 175, 80, 0.1);
-  color: #4CAF50;
+  color: #4caf50;
 }
 
 .error {
   background: rgba(244, 67, 54, 0.1);
-  color: #F44336;
+  color: #f44336;
 }
 
 .loading {
@@ -371,7 +379,7 @@ h1::after {
 }
 
 .loading::after {
-  content: '正在处理...';
+  content: "正在处理...";
   display: inline-block;
   animation: loading 1.5s infinite;
 }
@@ -392,8 +400,12 @@ h1::after {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modal-content {
@@ -408,8 +420,14 @@ h1::after {
 }
 
 @keyframes zoomIn {
-  from { transform: scale(0.8); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* 多色圆点波动效果 */
@@ -432,25 +450,35 @@ h1::after {
 }
 
 /* 设置每个圆点的动画延迟 */
-.box span:nth-child(1) { animation-delay: 0s; }
-.box span:nth-child(2) { animation-delay: 0.2s; }
-.box span:nth-child(3) { animation-delay: 0.4s; }
-.box span:nth-child(4) { animation-delay: 0.6s; }
-.box span:nth-child(5) { animation-delay: 0.8s; }
+.box span:nth-child(1) {
+  animation-delay: 0s;
+}
+.box span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.box span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+.box span:nth-child(4) {
+  animation-delay: 0.6s;
+}
+.box span:nth-child(5) {
+  animation-delay: 0.8s;
+}
 
 @keyframes anim {
   0% {
-      opacity: 0.3;
-      transform: translateY(0px);
+    opacity: 0.3;
+    transform: translateY(0px);
   }
   50% {
-      opacity: 1;
-      transform: translateY(-10px);
-      background: #f9cdff;
+    opacity: 1;
+    transform: translateY(-10px);
+    background: #f9cdff;
   }
   100% {
-      opacity: 0.3;
-      transform: translateY(0px);
+    opacity: 0.3;
+    transform: translateY(0px);
   }
 }
 
@@ -460,161 +488,168 @@ h1::after {
 }
 
 @keyframes loading {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* 在大屏幕下保持原有布局 */
 @media screen and (min-width: 769px) {
   .navbar {
-      justify-content: center; /* 居中对齐 */
+    justify-content: center; /* 居中对齐 */
   }
 
-  .navbar-left, .navbar-right {
-      display: flex;
-      justify-content: center; /* 居中对齐 */
-      gap: 15px;
+  .navbar-left,
+  .navbar-right {
+    display: flex;
+    justify-content: center; /* 居中对齐 */
+    gap: 15px;
   }
 
   .time-slots {
-      display: flex;
-      justify-content: center; /* 居中对齐 */
-      flex-wrap: nowrap; /* 禁止换行 */
-      width: 100%; /* 确保容器宽度 */
-      gap: 15px;
+    display: flex;
+    justify-content: center; /* 居中对齐 */
+    flex-wrap: nowrap; /* 禁止换行 */
+    width: 100%; /* 确保容器宽度 */
+    gap: 15px;
   }
 
   .time-item {
-      flex: 1; /* 平分容器宽度 */
-      display: flex;
-      justify-content: center;
+    flex: 1; /* 平分容器宽度 */
+    display: flex;
+    justify-content: center;
   }
 
   .time-item label {
-      width: 100%; /* 按钮水平铺满 */
+    width: 100%; /* 按钮水平铺满 */
   }
 
   .operation-mode {
-      display: flex;
-      justify-content: center; /* 居中对齐 */
-      flex-wrap: wrap;
-      width: 100%; /* 确保容器宽度 */
-      gap: 15px;
+    display: flex;
+    justify-content: center; /* 居中对齐 */
+    flex-wrap: wrap;
+    width: 100%; /* 确保容器宽度 */
+    gap: 15px;
   }
 
   .operation-item {
-      flex: 1 1 calc(50% - 15px); /* 平分容器宽度 */
-      max-width: calc(50% - 15px);
-      display: flex;
-      justify-content: center;
+    flex: 1 1 calc(33.33% - 15px); /* 三等分容器宽度 */
+    max-width: calc(33.33% - 15px); /* 限制最大宽度 */
+    display: flex;
+    justify-content: center;
   }
 
   .operation-item label {
-      width: 100%; /* 按钮水平铺满 */
+    width: 100%; /* 按钮水平铺满 */
   }
 }
 
 @media screen and (max-width: 768px) {
   .container {
-      width: 95%;
-      padding: 15px;
-      margin: 15px auto;
+    width: 95%;
+    padding: 15px;
+    margin: 15px auto;
   }
 
   .navbar {
-      display: flex;
-      justify-content: space-around; /* 确保导航栏元素均匀分布 */
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding: 8px;
+    display: flex;
+    justify-content: space-around; /* 确保导航栏元素均匀分布 */
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
   }
 
-  .navbar-left, .navbar-right {
-      display: flex;
-      flex-direction: row; /* 确保元素水平排列 */
-      align-items: center;
-      gap: 5px;
+  .navbar-left,
+  .navbar-right {
+    display: flex;
+    flex-direction: row; /* 确保元素水平排列 */
+    align-items: center;
+    gap: 5px;
   }
 
   .navbar a {
-      font-size: 13px;
-      padding: 5px 10px;
+    font-size: 13px;
+    padding: 5px 10px;
   }
 
   .user-info {
-      display: flex;
-      align-items: center;
-      gap: 10px; /* 增加间距 */
+    display: flex;
+    align-items: center;
+    gap: 10px; /* 增加间距 */
   }
 
   .user-info img {
-      width: 24px; /* 确保图片大小 */
-      height: 24px;
-      border-radius: 50%;
+    width: 24px; /* 确保图片大小 */
+    height: 24px;
+    border-radius: 50%;
   }
 
   .seat-grid {
-      grid-template-columns: repeat(3, 1fr); /* 调整为一排显示三个按钮 */
-      gap: 10px;
+    grid-template-columns: repeat(4, 1fr); /* 调整为一排显示四个按钮 */
+    gap: 10px;
   }
 
   .time-slots {
-      grid-template-columns: repeat(2, 1fr); /* 调整为一排显示两个按钮 */
-      gap: 10px;
+    grid-template-columns: repeat(2, 1fr); /* 调整为一排显示两个按钮 */
+    gap: 10px;
   }
 
   .operation-mode {
-      grid-template-columns: repeat(1, 1fr);
-      gap: 10px;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 10px;
   }
 
   .form-group input[type="text"] {
-      padding: 8px;
-      font-size: 14px;
+    padding: 8px;
+    font-size: 14px;
   }
 
   .submit-btn {
-      padding: 12px;
-      font-size: 14px;
+    padding: 12px;
+    font-size: 14px;
   }
 }
 
 @media screen and (max-width: 480px) {
   .seat-grid {
-      grid-template-columns: repeat(3, 1fr); /* 确保在小屏幕上也是一排三个按钮 */
+    grid-template-columns: repeat(3, 1fr); /* 确保在小屏幕上也是一排三个按钮 */
   }
 
   .time-slots {
-      grid-template-columns: repeat(2, 1fr); /* 确保在小屏幕上也是一排两个按钮 */
+    grid-template-columns: repeat(2, 1fr); /* 确保在小屏幕上也是一排两个按钮 */
   }
 
   .navbar {
-      display: flex;
-      flex-direction: row; /* 确保导航栏水平排列 */
-      align-items: center;
-      justify-content: space-around; /* 元素均匀分布 */
-      gap: 5px;
+    display: flex;
+    flex-direction: row; /* 确保导航栏水平排列 */
+    align-items: center;
+    justify-content: space-around; /* 元素均匀分布 */
+    gap: 5px;
   }
 
   .navbar a {
-      font-size: 12px;
-      padding: 4px 8px;
+    font-size: 12px;
+    padding: 4px 8px;
   }
 
   .user-info {
-      display: flex;
-      align-items: center;
-      gap: 5px; /* 增加间距 */
+    display: flex;
+    align-items: center;
+    gap: 5px; /* 增加间距 */
   }
 
   .user-info img {
-      width: 20px;
-      height: 20px;
+    width: 20px;
+    height: 20px;
   }
 
   .submit-btn {
-      font-size: 13px;
-      padding: 10px;
+    font-size: 13px;
+    padding: 10px;
   }
 }
