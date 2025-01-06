@@ -8,8 +8,12 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from init_db import init_db  # 导入 init_db 函数
 import logging
 
-# 初始化调度器
-scheduler = BackgroundScheduler()
+# 全局调度器实例
+scheduler = BackgroundScheduler(
+    coalesce=True,  # 合并多次触发的任务
+    misfire_grace_time=30,  # 允许任务延迟执行的时间（秒）
+)
+# 启动调度器
 scheduler.start()
 
 app = Flask(__name__)
@@ -816,7 +820,8 @@ def auto_book_seat_single(booking, job_id):
                 response = requests.post(url, headers=headers, data=data, timeout=10)
                 if response.status_code == 200:
                     assigned_slots.append((sjdId, booking['seat_id']))
-                    booking['time_slots'].remove(sjdId)  # 移除已预约的时间段
+                    if sjdId in booking['time_slots']:  # 检查时间段是否存在于列表中
+                        booking['time_slots'].remove(sjdId)  # 移除已预约的时间段
                 else:
                     all_slots_success = False
                     failure_details.append((sjdId, booking['seat_id'], response.status_code))
@@ -832,7 +837,8 @@ def auto_book_seat_single(booking, job_id):
                         response = requests.post(url, headers=headers, data=data, timeout=10)
                         if response.status_code == 200:
                             assigned_slots.append((sjdId, seat_id))
-                            booking['time_slots'].remove(sjdId)  # 移除已预约的时间段
+                            if sjdId in booking['time_slots']:  # 检查时间段是否存在于列表中
+                                booking['time_slots'].remove(sjdId)  # 移除已预约的时间段
                             break
                         else:
                             failure_details.append((sjdId, seat_id, response.status_code))
@@ -849,7 +855,8 @@ def auto_book_seat_single(booking, job_id):
                                 response = requests.post(url, headers=headers, data=data, timeout=10)
                                 if response.status_code == 200:
                                     assigned_slots.append((sjdId, seat['id']))
-                                    booking['time_slots'].remove(sjdId)  # 移除已预约的时间段
+                                    if sjdId in booking['time_slots']:  # 检查时间段是否存在于列表中
+                                        booking['time_slots'].remove(sjdId)  # 移除已预约的时间段
                                     break
                                 else:
                                     failure_details.append((sjdId, seat['id'], response.status_code))
@@ -868,13 +875,16 @@ def auto_book_seat_single(booking, job_id):
             result_message += "\n".join(failure_details_formatted)
 
         # 检查是否需要发送飞书通知
-        if result_message and should_send_notification(booking.get('last_result', ''), result_message):
-            print(f"预约结果: {result_message}")
-            booking['result'] = result_message
-            booking['processed'] = True
-            booking['last_result'] = result_message  # 更新最后消息状态
-            update_booking(booking)  # 更新数据库中的预约信息
-            send_feishu_notification(booking['feishu_webhook'], booking['result'])  # 发送飞书通知
+        if result_message:
+            if should_send_notification(booking.get('last_result', ''), result_message):
+                print(f"预约结果: {result_message}")
+                booking['result'] = result_message
+                booking['processed'] = True
+                booking['last_result'] = result_message  # 更新最后消息状态
+                update_booking(booking)  # 更新数据库中的预约信息
+                send_feishu_notification(booking['feishu_webhook'], booking['result'])  # 发送飞书通知
+            else:
+                print("消息未发生变化，不发送飞书通知。")
 
         # 检查所有时间段是否已成功预约
         if not booking['time_slots']:
@@ -916,7 +926,7 @@ def auto_book_seat():
             scheduler.add_job(
                 lambda: auto_book_seat_single(booking, job_id),
                 'date',
-                run_date=datetime.now() + timedelta(seconds=10),  # 10秒后执行
+                run_date=datetime.now() + timedelta(seconds=2),  # 2秒后执行
                 id=job_id
             )
             print(f"任务 {job_id} 已添加")
@@ -985,13 +995,12 @@ def clear_completed_bookings():
     finally:
         conn.close()
 
-scheduler = BackgroundScheduler()
-scheduler.add_job(auto_book_seat, 'cron', hour=6, minute=2)
-scheduler.add_job(get_seat_data, 'interval', minutes=5)  # 每5分钟获取一次座位数据
-scheduler.add_job(clear_completed_bookings, 'cron', hour=18, minute=30)  # 每天清除已完成预约的记录
-scheduler.start()
+# 添加任务到调度器
+scheduler.add_job(auto_book_seat, 'cron', hour=6, minute=1, second=30)  # 每天早上 6:01:30 执行
+scheduler.add_job(get_seat_data, 'interval', minutes=5)  # 每 5 分钟获取一次座位数据
+scheduler.add_job(clear_completed_bookings, 'cron', hour=18, minute=30)  # 每天 18:30 清除已完成预约的记录
 
 if __name__ == "__main__":
     init_db()
     get_seat_data()  # 初始化任务
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)
