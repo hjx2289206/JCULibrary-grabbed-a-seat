@@ -4,6 +4,7 @@ import hashlib
 import time
 import requests
 from datetime import datetime, timedelta
+from functools import partial
 from apscheduler.schedulers.background import BackgroundScheduler
 from init_db import init_db  # 导入 init_db 函数
 import logging
@@ -514,14 +515,15 @@ def my_bookings():
             'frequency': row[9]  # 直接使用数据库中的值
         }
 
-        # 动态设置 result 字段
-        if booking_dict['loop_booking']:
-            if booking_dict['frequency'] == 1200:  # 保活任务频率为 1200 秒（20 分钟）
-                booking_dict['result'] = "保活中，每 20 分钟执行一次"
-            else:  # 其他频率为循环预约
-                booking_dict['result'] = "正在循环预约，每 10 秒查询一次"
-        else:  # 非循环任务为自动预约
-            booking_dict['result'] = "预约记录已保存，将在明早 6:05 自动执行"
+        # 动态设置 result 字段（仅当任务未完成时）
+        if not booking_dict['processed']:
+            if booking_dict['loop_booking']:
+                if booking_dict['frequency'] == 1200:  # 保活任务频率为 1200 秒（20 分钟）
+                    booking_dict['result'] = "保活中，每 20 分钟执行一次"
+                else:  # 其他频率为循环预约
+                    booking_dict['result'] = "正在循环预约，每 10 秒查询一次"
+            else:  # 非循环任务为自动预约
+                booking_dict['result'] = "预约记录已保存，将在明早 6:05 自动执行"
 
         # 默认座位号
         booking_dict['seat_name'] = "未知座位"
@@ -932,12 +934,20 @@ def auto_book_seat_single(booking, job_id):
         send_feishu_notification(booking['feishu_webhook'], booking['result'])  # 发送飞书通知
 
 def auto_book_seat():
+    """
+    处理所有未完成的预约任务。
+    将任务添加到调度器中，由调度器管理任务的执行。
+    """
     try:
         # 加载所有未处理的预约记录
         bookings = load_bookings()
+        print(f"加载到 {len(bookings)} 条未处理的预约记录")
+
         for booking in bookings:
+            # 如果预约已处理，跳过
             if booking['processed']:
-                continue  # 如果预约已处理，跳过
+                print(f"预约 {booking['id']} 已处理，跳过")
+                continue
 
             # 生成唯一的 job_id
             job_id = f"booking_{booking['id']}"
@@ -947,14 +957,14 @@ def auto_book_seat():
                 print(f"任务 {job_id} 已存在，跳过")
                 continue
 
-            # 添加调度器任务，10秒后执行
+            # 添加调度器任务，2秒后执行
             scheduler.add_job(
-                lambda: auto_book_seat_single(booking, job_id),
+                partial(auto_book_seat_single, booking, job_id),
                 'date',
                 run_date=datetime.now() + timedelta(seconds=2),  # 2秒后执行
                 id=job_id
             )
-            print(f"任务 {job_id} 已添加")
+            print(f"任务 {job_id} 已添加，执行时间: 2秒后")
 
     except Exception as e:
         print(f"自动预约任务失败: {str(e)}")
@@ -1091,7 +1101,7 @@ def clear_completed_bookings():
         conn.close()
 
 # 添加任务到调度器
-scheduler.add_job(auto_book_seat, 'cron', hour=6, minute=1, second=10)  # 每天早上 6:01:10 执行
+scheduler.add_job(auto_book_seat, 'cron', hour=6, minute=0, second=50)  # 每天早上 6:00:50 执行
 scheduler.add_job(get_seat_data, 'interval', minutes=5)  # 每 5 分钟获取一次座位数据
 scheduler.add_job(clear_completed_bookings, 'cron', hour=18, minute=30)  # 每天 18:30 清除已完成预约的记录
 
