@@ -32,6 +32,7 @@ headers = {
 
 # 配置logging
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # 座位数据
 seat_data = {
@@ -768,6 +769,8 @@ def filter_zones(seats_data):
 def should_send_notification(last_message, current_message):
     return current_message != last_message
 
+import requests
+
 def auto_book_seat_single(booking, job_id):
     try:
         print(f"开始处理预约任务: {booking['id']}")
@@ -845,13 +848,27 @@ def auto_book_seat_single(booking, job_id):
                     'zwId': booking['seat_id'],
                 }
                 response = requests.post(url, headers=headers, data=data, timeout=10)
-                if response.status_code == 200:
-                    assigned_slots.append((sjdId, booking['seat_id']))
-                    if sjdId in booking['time_slots']:  # 检查时间段是否存在于列表中
-                        booking['time_slots'].remove(sjdId)  # 移除已预约的时间段
-                else:
+                
+                # 记录服务器返回的完整响应
+                print(f"服务器返回的响应状态码: {response.status_code}")
+                print(f"服务器返回的响应体: {response.text}")
+
+                try:
+                    response_data = response.json()  # 解析响应体为 JSON
+                    print(f"解析后的响应体 (JSON): {response_data}")
+
+                    # 判断业务逻辑是否成功
+                    if response.status_code == 200 and response_data.get('status') == 'success':
+                        assigned_slots.append((sjdId, booking['seat_id']))
+                        if sjdId in booking['time_slots']:
+                            booking['time_slots'].remove(sjdId)  # 移除已预约的时间段
+                    else:
+                        all_slots_success = False
+                        failure_details.append((sjdId, booking['seat_id'], response_data.get('message', '未知错误')))
+                except ValueError:
+                    print("响应体不是有效的 JSON 格式")
                     all_slots_success = False
-                    failure_details.append((sjdId, booking['seat_id'], response.status_code))
+                    failure_details.append((sjdId, booking['seat_id'], '无效的响应格式'))
             else:
                 all_slots_success = False
                 for seat_id, slots in available_seats.items():
@@ -862,35 +879,30 @@ def auto_book_seat_single(booking, job_id):
                             'zwId': seat_id,
                         }
                         response = requests.post(url, headers=headers, data=data, timeout=10)
-                        if response.status_code == 200:
-                            assigned_slots.append((sjdId, seat_id))
-                            if sjdId in booking['time_slots']:  # 检查时间段是否存在于列表中
-                                booking['time_slots'].remove(sjdId)  # 移除已预约的时间段
-                            break
-                        else:
-                            failure_details.append((sjdId, seat_id, response.status_code))
-                else:
-                    floor_zones = next((key for key, seats in filtered_seats_data.items() if booking['seat_id'] in [seat['id'] for seat in seats]), None)
-                    if floor_zones:
-                        for seat in filtered_seats_data[floor_zones]:
-                            if sjdId in available_seats.get(seat['id'], []):
-                                data = {
-                                    'rq': booking['date'],
-                                    'sjdId': sjdId,
-                                    'zwId': seat['id'],
-                                }
-                                response = requests.post(url, headers=headers, data=data, timeout=10)
-                                if response.status_code == 200:
-                                    assigned_slots.append((sjdId, seat['id']))
-                                    if sjdId in booking['time_slots']:  # 检查时间段是否存在于列表中
-                                        booking['time_slots'].remove(sjdId)  # 移除已预约的时间段
-                                    break
-                                else:
-                                    failure_details.append((sjdId, seat['id'], response.status_code))
+                        
+                        # 记录服务器返回的完整响应
+                        print(f"服务器返回的响应状态码: {response.status_code}")
+                        print(f"服务器返回的响应体: {response.text}")
+
+                        try:
+                            response_data = response.json()  # 解析响应体为 JSON
+                            print(f"解析后的响应体 (JSON): {response_data}")
+
+                            # 判断业务逻辑是否成功
+                            if response.status_code == 200 and response_data.get('status') == 'success':
+                                assigned_slots.append((sjdId, seat_id))
+                                if sjdId in booking['time_slots']:
+                                    booking['time_slots'].remove(sjdId)  # 移除已预约的时间段
+                                break
+                            else:
+                                failure_details.append((sjdId, seat_id, response_data.get('message', '未知错误')))
+                        except ValueError:
+                            print("响应体不是有效的 JSON 格式")
+                            failure_details.append((sjdId, seat_id, '无效的响应格式'))
 
         # 结果消息转换时间段ID
         assigned_slots_formatted = [f"成功预约 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {time_slot_mapping.get(sjdId, 'Unknown Time Slot')}" for sjdId, seat_id in assigned_slots]
-        failure_details_formatted = [f"预约失败 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {time_slot_mapping.get(sjdId, 'Unknown Time Slot')}, 错误代码: {status_code}" for sjdId, seat_id, status_code in failure_details]
+        failure_details_formatted = [f"预约失败 座位号: {seat_code_map[seat_id]} ({seat_floor_map[seat_id]}), 时间段: {time_slot_mapping.get(sjdId, 'Unknown Time Slot')}, 错误信息: {error_message}" for sjdId, seat_id, error_message in failure_details]
 
         # 输出结果
         result_message = ""
@@ -933,20 +945,22 @@ def auto_book_seat_single(booking, job_id):
         update_booking(booking)
         send_feishu_notification(booking['feishu_webhook'], booking['result'])  # 发送飞书通知
 
-def auto_book_seat():
+def auto_book_seat(scheduler, interval=10):
     """
-    处理所有未完成的预约任务。
-    将任务添加到调度器中，由调度器管理任务的执行。
+    处理所有未完成的预约任务，并将任务添加到调度器中，每 interval 秒执行一次。
+
+    :param scheduler: 调度器实例，用于管理任务
+    :param interval: 任务执行间隔时间（秒），默认为10秒
     """
     try:
         # 加载所有未处理的预约记录
         bookings = load_bookings()
-        print(f"加载到 {len(bookings)} 条未处理的预约记录")
+        logger.info(f"加载到 {len(bookings)} 条未处理的预约记录")
 
         for booking in bookings:
             # 如果预约已处理，跳过
-            if booking['processed']:
-                print(f"预约 {booking['id']} 已处理，跳过")
+            if booking.get('processed', False):
+                logger.info(f"预约 {booking['id']} 已处理，跳过")
                 continue
 
             # 生成唯一的 job_id
@@ -954,20 +968,20 @@ def auto_book_seat():
 
             # 检查是否已经存在相同 job_id 的任务
             if scheduler.get_job(job_id):
-                print(f"任务 {job_id} 已存在，跳过")
+                logger.info(f"任务 {job_id} 已存在，跳过")
                 continue
 
-            # 添加调度器任务，2秒后执行
+            # 添加调度器任务，每 interval 秒执行一次
             scheduler.add_job(
                 partial(auto_book_seat_single, booking, job_id),
-                'date',
-                run_date=datetime.now() + timedelta(seconds=2),  # 2秒后执行
+                'interval',
+                seconds=interval,
                 id=job_id
             )
-            print(f"任务 {job_id} 已添加，执行时间: 2秒后")
+            logger.info(f"任务 {job_id} 已添加，每 {interval} 秒执行一次")
 
     except Exception as e:
-        print(f"自动预约任务失败: {str(e)}")
+        logger.error(f"自动预约任务失败: {str(e)}")
 
 # 座位保活功能
 def cancel_and_rebook(booking, time_slot):
